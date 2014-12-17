@@ -43,6 +43,10 @@ public class MediatorServer extends NanoHTTPD {
         log = Logging.getLogger(system, "http-server");
     }
 
+    public MediatorServer(MediatorConfig config) {
+        this(ActorSystem.create("mediator"), config);
+    }
+
     @Override
     public Response serve(IHTTPSession session) {
         try {
