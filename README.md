@@ -1,7 +1,7 @@
 OpenHIM Mediator Engine
 =======================
 
-*:warning: Note that this project is still in version 0.x.x and the API and functionality is likely to change drastically*
+**:warning: Note that this project is still in version 0.x.x and the API and functionality is likely to change drastically**
 
 An engine for building OpenHIM mediators based on the [Akka](http://akka.io/) framework.
 
@@ -46,7 +46,7 @@ public class MyActor extends UntypedActor {
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof MediatorHTTPRequest) {
             FinishRequest response = new FinishRequest("A message from my new mediator!", "text/plain", HttpStatus.SC_OK);
-            getSender().tell(response, getSelf());
+            ((MediatorHTTPRequest) msg).getRequestHandler().tell(response, getSelf());
         } else {
             unhandled(msg);
         }
@@ -54,7 +54,7 @@ public class MyActor extends UntypedActor {
 }
 ```
 
-An actor is simply a Java Object that can receive messages. The engine will send your actor a `MediatorHTTPRequest` message whenever a request is received and you can respond by sending back a `FinishRequest` message. This can be done asyncronously at any time, not necessarily at the same moment you receive the http request. The above actor template demonstrates a simple actor that responds immediately with an OK message.
+An actor is simply a Java Object that can receive messages. The engine will send your actor a `MediatorHTTPRequest` message whenever a request is received and you can respond by sending back a `FinishRequest` message. The `MediatorHTTPRequest` provides a reference to the request handler for receiving this response. The above actor template demonstrates a simple actor that responds immediately with an OK message. Note that the response can be sent asyncronously, not necessarily at the same moment you receive the http request like above.
 
 When running, the server will receive requests as well as handle the response, including the formatting of the standard _application/json+openhim_ response, so you do not need to worry about this. Whatever you return in the `FinishRequest` will be embedded in the response object.
 
@@ -64,7 +64,7 @@ RoutingTable routingTable = new RoutingTable();
 routingTable.addRoute("/mymediator", MyActor.class);
 ```
 
-When receiving a request on the specified root, the engine will launch a new instance of your actor to handle the request (actor-per-request model). This means that you can safely add request-specific state to your actor.
+When receiving a request on the specified path, the engine will launch a new instance of your actor to handle the request (actor-per-request model). This means that you can safely add request-specific state to your actor.
 
 In summary, the following illustrates an example main method that fires up the engine that'll route to the above `MyActor`:
 ```
@@ -121,6 +121,13 @@ public class MyMediatorMain {
     }
 }
 ```
+
+Request Handler Reference
+-------------------------
+When receiving a request, the engine will send your actor a `MediatorHTTPRequest` message. This message contains a reference to the request handler actor, and it is this actor that you send messages to in order to manage the final mediator response. The messages it supports are as follows:
+* **FinishRequestMessage** - Finalize the request and send the response. Note that the request actor instances will be stopped at this point (the engine will send a `PoisonPill` message).
+* **ExceptErrorMessage** - An exception has occured and the request should end with a `500 Internal Server Error` response.
+* **AddOrchestrationToCoreResponseMessage** - Add orchestration details to the request response. This message can be sent as many times as required.
 
 License
 -------
