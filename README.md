@@ -157,6 +157,29 @@ try {
 
 In addition, you don't need to stress about undhandled exceptions either. Akka will automatically restart any actors that failed due to an exception. See the [Akka documentation](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html) for further details (the engine uses the default supervisor strategy, by default).
 
+# Config Handle
+For convenience, any actors that are setup in the routing table can get a handle to the mediator config if it has a constructor that takes `MediatorConfig` as a parameter. If available, the engine will pass through a reference when routing to the actor:
+```
+public class MyActor extends UntypedActor {
+    LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+
+    private final MediatorConfig config;
+
+    public MyActor(MediatorConfig config) {
+        this.config = config;
+    }
+
+    @Override
+    public void onReceive(Object msg) throws Exception {
+        if (msg instanceof MediatorHTTPRequest) {
+            ...
+        } else {
+            unhandled(msg);
+        }
+    }
+}
+```
+
 # Actor Model
 The engine is based on Akka and is designed to be an easy way to bootstrap an actor system for your mediator. However you are under no obligation to follow the actor model in your project! In this case, simply bootstrap your project as explained in the **Getting Started** section with a single actor for receiving requests and link to your own non-actor classes from there.
 

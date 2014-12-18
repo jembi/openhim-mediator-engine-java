@@ -39,11 +39,11 @@ public class MediatorRequestActor extends UntypedActor {
 
     private ActorRef requestCaller;
     private CoreResponse response = new CoreResponse();
-    private final RoutingTable routingTable;
+    private final MediatorConfig config;
 
 
-    public MediatorRequestActor(RoutingTable routingTable) {
-        this.routingTable = routingTable;
+    public MediatorRequestActor(MediatorConfig config) {
+        this.config = config;
     }
 
 
@@ -60,14 +60,25 @@ public class MediatorRequestActor extends UntypedActor {
 
     private void routeToActor(String route, Class<? extends Actor> clazz, NanoHTTPD.IHTTPSession session) {
         loadRequestBody(session);
-        ActorRef actor = getContext().actorOf(Props.create(clazz));
+
+        ActorRef actor = null;
+        try {
+            //can we pass the mediator config through?
+            if (clazz.getConstructor(MediatorConfig.class) != null) {
+                actor = getContext().actorOf(Props.create(clazz, config));
+            }
+        } catch (NoSuchMethodException | SecurityException ex) {
+            //no matter. use default
+            actor = getContext().actorOf(Props.create(clazz));
+        }
+
         actor.tell(new NanoIHTTPWrapper(getSelf(), getSelf(), route, session), getSelf());
     }
 
     private void routeRequest(NanoHTTPD.IHTTPSession session) {
         log.info("Received request: " + session.getMethod() + " " + session.getUri());
 
-        Class<? extends Actor> routeTo = routingTable.getActorClassForRoute(session.getUri());
+        Class<? extends Actor> routeTo = config.getRoutingTable().getActorClassForRoute(session.getUri());
         if (routeTo!=null) {
             routeToActor(session.getUri(), routeTo, session);
         } else {

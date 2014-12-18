@@ -1,5 +1,11 @@
 package org.openhim.mediator.engine;
 
+import org.apache.commons.io.IOUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 /**
  * Encapsulates the mediator configuration.
  * At a minimum the name, server host & port and the routing table needs to be set.
@@ -16,6 +22,8 @@ public class MediatorConfig {
     private RoutingTable routingTable;
     private StartupActorsConfig startupActors;
     private RegistrationConfig registrationConfig;
+    private Properties properties;
+
 
     public MediatorConfig() {
     }
@@ -136,5 +144,33 @@ public class MediatorConfig {
 
     public void setRegistrationConfig(RegistrationConfig registrationConfig) {
         this.registrationConfig = registrationConfig;
+    }
+
+    /**
+     * @see #setProperties(java.util.Properties)
+     */
+    public Properties getProperties() {
+        return properties;
+    }
+
+    /**
+     * Optional mediator specific field for loading custom config from a properties file
+     */
+    public void setProperties(Properties properties) {
+        this.properties = properties;
+    }
+
+    /**
+     * @see #setProperties(java.util.Properties)
+     */
+    public void setProperties(String resourceName) throws IOException {
+        InputStream propsStream = getClass().getClassLoader().getResourceAsStream(resourceName);
+        try {
+            Properties props = new Properties();
+            props.load(propsStream);
+            setProperties(props);
+        } finally {
+            IOUtils.closeQuietly(propsStream);
+        }
     }
 }
