@@ -4,6 +4,25 @@
 <groupId>org.openhim</groupId>
 <artifactId>mediator-engine</artifactId>
 <version>0.0.3</version>
+<packaging>jar</packaging>
+<name>OpenHIM Mediator Engine</name>
+<description>An engine for building OpenHIM mediators based on the Akka framework</description>
+<url>http://openhim.org</url>
+<licenses>
+  <license>
+    <name>Mozilla Public License Version 2.0</name>
+    <url>https://www.mozilla.org/MPL/2.0/</url>
+  </license>
+</licenses>
+<organization>
+  <name>Jembi Health Systems NPC</name>
+  <url>http://www.jembi.org/</url>
+</organization>
+<scm>
+  <connection>scm:git:git@github.com:jembi/openhim-mediator-engine-java.git</connection>
+  <developerConnection>scm:git:git@github.com:jembi/openhim-mediator-engine-java.git</developerConnection>
+  <url>git@github.com:jembi/openhim-mediator-engine-java.git</url>
+</scm>
 <properties>
   <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 </properties>
