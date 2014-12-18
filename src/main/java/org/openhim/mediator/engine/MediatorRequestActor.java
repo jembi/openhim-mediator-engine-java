@@ -78,7 +78,7 @@ public class MediatorRequestActor extends UntypedActor {
     private void routeRequest(NanoHTTPD.IHTTPSession session) {
         log.info("Received request: " + session.getMethod() + " " + session.getUri());
 
-        Class<? extends Actor> routeTo = config.getRoutingTable().getActorClassForRoute(session.getUri());
+        Class<? extends Actor> routeTo = config.getRoutingTable().getActorClassForPath(session.getUri());
         if (routeTo!=null) {
             routeToActor(session.getUri(), routeTo, session);
         } else {

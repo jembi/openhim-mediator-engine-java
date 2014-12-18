@@ -14,6 +14,7 @@ public class MediatorConfig {
     private String name;
     private String serverHost;
     private Integer serverPort;
+    private Integer rootTimeout;
     private String coreHost;
     private Integer coreAPIPort = 8080;
     private String coreAPIScheme = "https";
@@ -80,6 +81,20 @@ public class MediatorConfig {
      */
     public void setServerPort(Integer serverPort) {
         this.serverPort = serverPort;
+    }
+
+    /**
+     * @see #setRootTimeout(Integer)
+     */
+    public Integer getRootTimeout() {
+        return rootTimeout;
+    }
+
+    /**
+     * How long the root actor should wait before timing out a request (in milliseconds).
+     */
+    public void setRootTimeout(Integer rootTimeout) {
+        this.rootTimeout = rootTimeout;
     }
 
     public String getCoreHost() {
