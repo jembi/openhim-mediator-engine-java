@@ -12,18 +12,18 @@ import org.openhim.mediator.engine.connectors.HTTPConnector;
 import org.openhim.mediator.engine.messages.*;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
  * The root actor for the mediator.
- *
- * Its roles are:
- * launch/kill new request actors,
- * launch all single instance actors on startup, and
- * trigger the registration of the mediator to core.
+ * <br/><br/>
+ * Its roles are to:
+ * <ul>
+ * <li>launch/kill new request actors,</li>
+ * <li>contain the request context,</li>
+ * <li>launch all single instance actors on startup, and</li>
+ * <li>trigger the registration of the mediator to core.</li>
+ * </ul>
  */
 public class MediatorRootActor extends UntypedActor {
 

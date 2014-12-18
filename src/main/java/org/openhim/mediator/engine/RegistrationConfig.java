@@ -5,6 +5,14 @@ import org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Configuration required for registering the mediator with core.
+ * <br/><br/>
+ * At a minimum only the JSON registration content is required,
+ * however other values (such as the API path) are available if they need to be overwritten.
+ * <br/><br/>
+ * See <a href="https://github.com/jembi/openhim-core-js/wiki/Creating-an-OpenHIM-mediator">the core documentation</a>
+ */
 public class RegistrationConfig {
     private String path = "/mediators";
     private String method = "POST";

@@ -7,6 +7,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * The engine routing table.
+ */
 public class RoutingTable {
     private static class Route {
         String path;
@@ -19,12 +22,12 @@ public class RoutingTable {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o){ return true; }
+            if (o == null || getClass() != o.getClass()){ return false; }
 
             Route route1 = (Route) o;
 
-            if (!path.equals(route1.path)) return false;
+            if (!path.equals(route1.path)){ return false; }
 
             return true;
         }
@@ -37,7 +40,6 @@ public class RoutingTable {
 
     private Map<Route, Class<? extends Actor>> routes = new LinkedHashMap<>();
 
-
     private void addRoute(Route route, Class<? extends Actor> actorClass) throws RouteAlreadyMappedException {
         if (routes.containsKey(route)) {
             throw new RouteAlreadyMappedException();
@@ -45,14 +47,33 @@ public class RoutingTable {
         routes.put(route, actorClass);
     }
 
-    public void addRoute(String route, Class<? extends Actor> actorClass) throws RouteAlreadyMappedException {
-        addRoute(new Route(route, false), actorClass);
+    /**
+     * Add an exact path to the routing table.
+     *
+     * @throws RouteAlreadyMappedException
+     */
+    public void addRoute(String path, Class<? extends Actor> actorClass) throws RouteAlreadyMappedException {
+        addRoute(new Route(path, false), actorClass);
     }
 
+    /**
+     * Add a URL pattern to the routing table.
+     *
+     * @param urlPattern A regular expression
+     * @throws RouteAlreadyMappedException
+     */
     public void addRegexRoute(String urlPattern, Class<? extends Actor> actorClass) throws RouteAlreadyMappedException {
         addRoute(new Route(urlPattern, true), actorClass);
     }
 
+    /**
+     * Retrieve a matching actor class for a specific path.
+     * <br/><br/>
+     * The method will search the routing table for a matching entry on a FIFO basis.
+     *
+     * @see #addRoute(String, Class)
+     * @see #addRegexRoute(String, Class)
+     */
     public Class<? extends Actor> getActorClassForPath(String path) {
         for (Route route : routes.keySet()) {
             if (route.isRegex) {

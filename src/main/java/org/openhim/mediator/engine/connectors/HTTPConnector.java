@@ -33,6 +33,14 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+/**
+ * An actor that provides functionality for connecting to HTTP services.
+ * <br/><br/>
+ * Supports the following messages:
+ * <ul>
+ * <li>MediatorHTTPRequest</li>
+ * </ul>
+ */
 public class HTTPConnector extends UntypedActor {
 
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);

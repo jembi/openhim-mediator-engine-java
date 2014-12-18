@@ -140,7 +140,7 @@ The connectors are available on the path: "/user/**{mediator-name}**/**{connecto
 Provides connection to HTTP services. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`.
 
 ## core-api-connector
-An adaptor to the http-connector that adds the authentication headers as required by the OpenHIM Core API. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`. It will use the auth details provided in the mediator config supplied to the mediator server.
+An adaptor to the http-connector that adds the authentication headers as required by the OpenHIM Core API. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`. It will use the auth details provided in the mediator config supplied to the mediator server. It also supports the `RegisterMediatorWithCore` message, although this is automatically called by the engine.
 
 # Error Handling
 It's important for a mediator to have robust error handling. The engine provides mechanisms for handling exceptions, see the above **Request Handler Reference** section. When you encounter an exception, simply send a message to the reguest handler, and it'll log and respond to the client with a 500 status. If however you encounter a logic error, such as a validation error of a received message body, rather use the FinishRequest message to respond appropriately:
@@ -213,4 +213,4 @@ Although deciding on when to instatiate actors ulitimately depends on your own i
 # License
 This software is licensed under the Mozilla Public License Version 2.0.
 
-This software makes use of [NanoHTTPD](http://nanohttpd.com/). For license details see [this link](https://github.com/NanoHttpd/nanohttpd/blob/ab6feae737b3038532d057e87fd83c58bad3b3cc/LICENSE.md).
+This software makes use of [NanoHTTPD](http://nanohttpd.com/). For license details see [here](https://github.com/NanoHttpd/nanohttpd/blob/ab6feae737b3038532d057e87fd83c58bad3b3cc/LICENSE.md).

@@ -8,6 +8,7 @@ import java.util.Properties;
 
 /**
  * Encapsulates the mediator configuration.
+ * <br/><br/>
  * At a minimum the name, server host & port and the routing table needs to be set.
  */
 public class MediatorConfig {
@@ -97,66 +98,118 @@ public class MediatorConfig {
         this.rootTimeout = rootTimeout;
     }
 
+    /**
+     * @see #setCoreHost(String)
+     */
     public String getCoreHost() {
         return coreHost;
     }
 
+    /**
+     * The OpenHIM Core host.
+     */
     public void setCoreHost(String coreHost) {
         this.coreHost = coreHost;
     }
 
+    /**
+     * @see #setCoreAPIPort(Integer)
+     */
     public Integer getCoreAPIPort() {
         return coreAPIPort;
     }
 
+    /**
+     * The OpenHIM Core API port. Defaults to 8080 if not set.
+     */
     public void setCoreAPIPort(Integer coreAPIPort) {
         this.coreAPIPort = coreAPIPort;
     }
 
+    /**
+     * @see #setCoreAPIScheme(String)
+     */
     public String getCoreAPIScheme() {
         return coreAPIScheme;
     }
 
+    /**
+     * The OpenHIM Core API scheme. Defaults to 'https' if not set.
+     */
     public void setCoreAPIScheme(String coreAPIScheme) {
         this.coreAPIScheme = coreAPIScheme;
     }
 
+    /**
+     * @see #setCoreAPIUsername(String)
+     */
     public String getCoreAPIUsername() {
         return coreAPIUsername;
     }
 
+    /**
+     * The OpenHIM Core API user.
+     *
+     * @see #setCoreAPIPassword(String)
+     */
     public void setCoreAPIUsername(String coreAPIUsername) {
         this.coreAPIUsername = coreAPIUsername;
     }
 
+    /**
+     * @see #getCoreAPIPassword()
+     */
     public String getCoreAPIPassword() {
         return coreAPIPassword;
     }
 
+    /**
+     * Password for the OpenHIM Core API user.
+     *
+     * @see #setCoreAPIUsername(String)
+     */
     public void setCoreAPIPassword(String coreAPIPassword) {
         this.coreAPIPassword = coreAPIPassword;
     }
 
+    /**
+     * @see org.openhim.mediator.engine.RoutingTable
+     */
     public RoutingTable getRoutingTable() {
         return routingTable;
     }
 
+    /**
+     * @see org.openhim.mediator.engine.RoutingTable
+     */
     public void setRoutingTable(RoutingTable routingTable) {
         this.routingTable = routingTable;
     }
 
+    /**
+     * @see org.openhim.mediator.engine.StartupActorsConfig
+     */
     public StartupActorsConfig getStartupActors() {
         return startupActors;
     }
 
+    /**
+     * @see org.openhim.mediator.engine.StartupActorsConfig
+     */
     public void setStartupActors(StartupActorsConfig startupActors) {
         this.startupActors = startupActors;
     }
 
+    /**
+     * @see org.openhim.mediator.engine.RegistrationConfig
+     */
     public RegistrationConfig getRegistrationConfig() {
         return registrationConfig;
     }
 
+    /**
+     * @see org.openhim.mediator.engine.RegistrationConfig
+     */
     public void setRegistrationConfig(RegistrationConfig registrationConfig) {
         this.registrationConfig = registrationConfig;
     }
