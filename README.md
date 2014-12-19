@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jembi/openhim-mediator-engine-java.svg)](https://travis-ci.org/jembi/openhim-mediator-engine-java)
+
 OpenHIM Mediator Engine
 =======================
 
