@@ -60,5 +60,24 @@
     <artifactId>httpclient</artifactId>
     <version>4.3.6</version>
   </dependency>
+  <!-- Testing dependencies -->
+  <dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.12</version>
+    <scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>com.typesafe.akka</groupId>
+    <artifactId>akka-testkit_2.10</artifactId>
+    <version>2.3.7</version>
+    <scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>com.github.tomakehurst</groupId>
+    <artifactId>wiremock</artifactId>
+    <version>1.52</version>
+    <scope>test</scope>
+  </dependency>
 </dependencies>
 </project>

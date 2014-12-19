@@ -96,7 +96,7 @@ public class RoutingTable {
     }
 
     public Class<? extends Actor> removeRoute(String route) {
-        return routes.remove(route);
+        return routes.remove(new Route(route, false));
     }
 
 
