@@ -120,7 +120,7 @@ public class HTTPConnector extends UntypedActor {
         orch.setRequest(orchReq);
 
         CoreResponse.Response orchResp = new CoreResponse.Response();
-        orchResp.setBody(resp.getContent());
+        orchResp.setBody(resp.getBody());
         orchResp.setStatus(resp.getStatusCode());
         orchResp.setHeaders(resp.getHeaders());
         orch.setResponse(orchResp);

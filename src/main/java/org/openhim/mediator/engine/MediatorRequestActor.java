@@ -101,7 +101,9 @@ public class MediatorRequestActor extends UntypedActor {
         if (response.getResponse()==null) {
             CoreResponse.Response resp = new CoreResponse.Response();
             resp.setBody(msg.getResponse());
-            resp.putHeader("Content-Type", msg.getResponseMimeType());
+            if (msg.getResponseMimeType()!=null) {
+                resp.putHeader("Content-Type", msg.getResponseMimeType());
+            }
             resp.setStatus(msg.getResponseStatus());
             response.setResponse(resp);
         }

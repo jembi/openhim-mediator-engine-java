@@ -66,7 +66,7 @@ public class HTTPConnectorTest {
             httpConnector.tell(GET_Request, getRef());
 
             final Object[] out =
-                    new ReceiveWhile<Object>(Object.class, duration("1 second")) {
+                    new ReceiveWhile<Object>(Object.class, duration("100 millis")) {
                         @Override
                         protected Object match(Object msg) throws Exception {
                             if (msg instanceof MediatorHTTPResponse ||
@@ -83,7 +83,7 @@ public class HTTPConnectorTest {
             for (Object o : out) {
                 if (o instanceof MediatorHTTPResponse) {
                     assertEquals(200, ((MediatorHTTPResponse) o).getStatusCode().intValue());
-                    assertEquals("test", ((MediatorHTTPResponse) o).getContent());
+                    assertEquals("test", ((MediatorHTTPResponse) o).getBody());
                     assertEquals("text/plain", ((MediatorHTTPResponse) o).getHeaders().get("Content-Type"));
                     foundResponse = true;
                 } else if (o instanceof AddOrchestrationToCoreResponse) {

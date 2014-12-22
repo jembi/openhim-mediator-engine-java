@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.Map;
 
 public class MediatorHTTPRequest extends MediatorRequestMessage {
-    private final String orchestration;
     private final String method;
     private final String scheme;
     private final String host;
@@ -25,8 +24,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
     public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
                                String method, String scheme, String host, Integer port, String path, String body,
                                Map<String, String> headers, Map<String, String> params, String correlationId) {
-        super(correlationId, requestHandler, respondTo);
-        this.orchestration = orchestration;
+        super(requestHandler, respondTo, orchestration, correlationId);
         this.method = method;
         this.scheme = scheme;
         this.host = host;
@@ -53,10 +51,6 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
         );
     }
 
-
-    public String getOrchestration() {
-        return orchestration;
-    }
 
     public String getMethod() {
         return method;

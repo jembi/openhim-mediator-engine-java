@@ -95,7 +95,7 @@ public class MediatorRootActor extends UntypedActor {
             coreConnector.tell(msg, getSelf());
         } else if (msg instanceof MediatorHTTPResponse) {
             log.info("Sent mediator registration message to core");
-            log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getContent()));
+            log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getBody()));
         } else {
             unhandled(msg);
         }

@@ -120,12 +120,12 @@ public class CoreAPIConnector extends UntypedActor {
         MediatorHTTPRequest originalRequest = activeRequests.remove(correlationId);
         try {
             if (response.getStatusCode()!=200) {
-                String msg = String.format("Core responded with %s (%s)", response.getStatusCode(), response.getContent());
+                String msg = String.format("Core responded with %s (%s)", response.getStatusCode(), response.getBody());
                 throw new CoreGetAuthenticationDetailsError(msg);
             }
 
             Gson gson = new GsonBuilder().create();
-            AuthResponse authResponse = gson.fromJson(response.getContent(), AuthResponse.class);
+            AuthResponse authResponse = gson.fromJson(response.getBody(), AuthResponse.class);
 
             String passHash = hash(authResponse.salt + config.getCoreAPIPassword());
             String token = hash(passHash + authResponse.salt + authResponse.ts);
@@ -163,7 +163,7 @@ public class CoreAPIConnector extends UntypedActor {
         } else if (msg instanceof MediatorHTTPResponse) {
             if ("register-mediator".equals(((MediatorHTTPResponse) msg).getOriginalRequest().getOrchestration())) {
                 log.info("Sent mediator registration message to core");
-                log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getContent()));
+                log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getBody()));
             } else if ("get-auth-details".equals(((MediatorHTTPResponse) msg).getOriginalRequest().getOrchestration())) {
                 MediatorHTTPRequest originalRequest = getOriginalRequestWithAuthenticationHeaders((MediatorHTTPResponse) msg);
                 if (msg!=null) {
