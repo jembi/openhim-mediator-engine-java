@@ -66,7 +66,7 @@ public class HTTPConnectorTest {
             httpConnector.tell(GET_Request, getRef());
 
             final Object[] out =
-                    new ReceiveWhile<Object>(Object.class, duration("100 millis")) {
+                    new ReceiveWhile<Object>(Object.class, duration("1 second")) {
                         @Override
                         protected Object match(Object msg) throws Exception {
                             if (msg instanceof MediatorHTTPResponse ||
