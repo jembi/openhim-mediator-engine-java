@@ -8,9 +8,10 @@ OpenHIM Mediator Engine
 An engine for building OpenHIM mediators based on the [Akka](http://akka.io/) framework.
 
 # Yeoman Generator
-The quickest way to get a new mediator up and running with the engine is to use the handy [Yeoman generator](https://github.com/jembi/openhim-mediator-yeoman-generators/tree/master/generator-mediator-java):
+The quickest way to get a new mediator up and running is to use the handy [Yeoman generator](https://github.com/jembi/openhim-mediator-yeoman-generators/tree/master/generator-mediator-java):
 * `npm install -g yo`
 * `git clone https://github.com/jembi/openhim-mediator-yeoman-generators`
+* `cd openhim-mediator-yeoman-generators`
 * `npm install -g generator-mediator-java`
 * `yo mediator-java`
 
