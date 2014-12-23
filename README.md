@@ -13,6 +13,9 @@ The quickest way to get a new mediator up and running is to use the handy [Yeoma
 * `git clone https://github.com/jembi/openhim-mediator-yeoman-generators`
 * `cd openhim-mediator-yeoman-generators`
 * `npm install -g generator-mediator-java`
+* `cd ..`
+* `mkdir my-mediator`
+* `cd my-mediator`
 * `yo mediator-java`
 
 See the **Getting Started** guide below otherwise.
