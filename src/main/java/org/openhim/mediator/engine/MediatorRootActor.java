@@ -15,6 +15,8 @@ import akka.event.LoggingAdapter;
 import fi.iki.elonen.NanoHTTPD;
 import org.openhim.mediator.engine.connectors.CoreAPIConnector;
 import org.openhim.mediator.engine.connectors.HTTPConnector;
+import org.openhim.mediator.engine.connectors.MLLPConnector;
+import org.openhim.mediator.engine.connectors.UDPFireForgetConnector;
 import org.openhim.mediator.engine.messages.*;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
@@ -60,6 +62,8 @@ public class MediatorRootActor extends UntypedActor {
 
         getContext().actorOf(Props.create(HTTPConnector.class), "http-connector");
         getContext().actorOf(Props.create(CoreAPIConnector.class, config), "core-api-connector");
+        getContext().actorOf(Props.create(MLLPConnector.class), "mllp-connector");
+        getContext().actorOf(Props.create(UDPFireForgetConnector.class), "udp-fire-forget-connector");
     }
 
     private void containRequest(final NanoHTTPD.ActorContainedRunnable msg, final ActorRef requestActor) {

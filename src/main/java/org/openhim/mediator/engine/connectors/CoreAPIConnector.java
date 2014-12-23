@@ -27,7 +27,8 @@ import java.util.UUID;
  * Supports the following messages:
  * <ul>
  * <li>RegisterMediatorWithCore: Register the mediator with core</li>
- * <li>MediatorHTTPRequest: Will add the auth headers to the request and forward it to http-connector</li>
+ * <li>MediatorHTTPRequest: Will add the auth headers to the request and forward it to http-connector -
+ * responds with MediatorHTTPResponse</li>
  * </ul>
  */
 public class CoreAPIConnector extends UntypedActor {

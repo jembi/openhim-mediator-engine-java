@@ -44,7 +44,7 @@ import java.util.concurrent.Callable;
  * <br/><br/>
  * Supports the following messages:
  * <ul>
- * <li>MediatorHTTPRequest</li>
+ * <li>MediatorHTTPRequest - responds with MediatorHTTPResponse</li>
  * </ul>
  */
 public class HTTPConnector extends UntypedActor {

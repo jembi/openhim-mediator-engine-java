@@ -154,6 +154,12 @@ Provides connection to HTTP services. Accepts `MediatorHTTPRequest` messages and
 ## core-api-connector
 An adaptor to the http-connector that adds the authentication headers as required by the OpenHIM Core API. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`. It will use the auth details provided in the mediator config supplied to the mediator server. It also supports the `RegisterMediatorWithCore` message, although this is automatically called by the engine.
 
+## mllp-connector
+Provides connection to TCP services using the MLLP protocol. Accepts `MediatorSocketRequest` messages and will respond with `MediatorSocketResponse`.
+
+## udp-fire-forget-connector
+Provides connection to UDP services for fire-and-forget messages. Accepts `MediatorSocketRequest` messages with no response.
+
 # Error Handling
 It's important for a mediator to have robust error handling. The engine provides mechanisms for handling exceptions, see the above **Request Handler Reference** section. When you encounter an exception, simply send a message to the reguest handler, and it'll log and respond to the client with a 500 status. If however you encounter a logic error, such as a validation error of a received message body, rather use the FinishRequest message to respond appropriately:
 ```
