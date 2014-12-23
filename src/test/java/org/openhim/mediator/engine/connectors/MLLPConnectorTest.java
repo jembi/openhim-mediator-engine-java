@@ -59,7 +59,7 @@ public class MLLPConnectorTest {
                 assertTrue(!receivedMessage.isEmpty());
                 assertEquals(MLLPConnector.wrapMLLP("test"), receivedMessage);
 
-                conn.getOutputStream().write(MLLPConnector.wrapMLLP("test response").getBytes());
+                conn.getOutputStream().write(MLLPConnector.wrapMLLP("test\r\nresponse").getBytes());
                 conn.close();
             } catch (IOException e) {
                 fail();
@@ -122,7 +122,7 @@ public class MLLPConnectorTest {
 
             for (Object o : out) {
                 if (o instanceof MediatorSocketResponse) {
-                    assertEquals("test response", ((MediatorSocketResponse) o).getBody());
+                    assertEquals("test\r\nresponse", ((MediatorSocketResponse) o).getBody());
                     foundResponse = true;
                 } else if (o instanceof AddOrchestrationToCoreResponse) {
                     assertNotNull(((AddOrchestrationToCoreResponse) o).getOrchestration());

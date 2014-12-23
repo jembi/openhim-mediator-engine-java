@@ -87,7 +87,7 @@ public class MLLPConnector extends UntypedActor {
             if (lastByte!=-1) {
                 buffer.write(lastByte);
             }
-        } while (lastByte!=-1 && lastLastByte!=MLLP_FOOTER_FS && lastByte!=MLLP_FOOTER_CR);
+        } while (lastByte!=-1 && (lastLastByte!=MLLP_FOOTER_FS || lastByte!=MLLP_FOOTER_CR));
 
         return buffer.toString();
     }
