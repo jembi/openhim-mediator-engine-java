@@ -149,18 +149,18 @@ ActorSelection connector = getContext().actorSelection("/user/my-mediator/http-c
 MediatorHTTPRequest httpRequest = new MediatorHTTPRequest(...);
 connecter.tell(httpRequest, getSelf());
 ```
-The connectors are available on the path: "/user/**{mediator-name}**/**{connector-name}**". All the connectors will automatically add an orchestration item to the final mediator response.
+The connectors are available on the path: "/user/**{mediator-name}**/**{connector-name}**". All the connectors will automatically add an orchestration item to the final mediator response (except for the `udp-fire-forget-connector`).
 
-## http-connector
+## `http-connector`
 Provides connection to HTTP services. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`.
 
-## core-api-connector
+## `core-api-connector`
 An adaptor to the http-connector that adds the authentication headers as required by the OpenHIM Core API. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`. It will use the auth details provided in the mediator config supplied to the mediator server. It also supports the `RegisterMediatorWithCore` message, although this is automatically called by the engine.
 
-## mllp-connector
+## `mllp-connector`
 Provides connection to TCP services using the MLLP protocol. Accepts `MediatorSocketRequest` messages and will respond with `MediatorSocketResponse`.
 
-## udp-fire-forget-connector
+## `udp-fire-forget-connector`
 Provides connection to UDP services for fire-and-forget messages. Accepts `MediatorSocketRequest` messages with no response.
 
 # Error Handling
