@@ -13,15 +13,15 @@
 package org.openhim.mediator.engine.messages;
 
 public class SimpleMediatorResponse<T>  extends MediatorResponseMessage {
-    private T requestObject;
+    private T responseObject;
 
-    public SimpleMediatorResponse(MediatorRequestMessage originalRequest, T requestObject) {
+    public SimpleMediatorResponse(MediatorRequestMessage originalRequest, T responseObject) {
         super(originalRequest);
-        this.requestObject = requestObject;
+        this.responseObject = responseObject;
     }
 
-    public T getRequestObject() {
-        return requestObject;
+    public T getResponseObject() {
+        return responseObject;
     }
 
     public static boolean isInstanceOf(Class requestObjectClass, Object o) {
@@ -29,6 +29,6 @@ public class SimpleMediatorResponse<T>  extends MediatorResponseMessage {
             return false;
         }
 
-        return requestObjectClass.isInstance(((SimpleMediatorResponse) o).getRequestObject());
+        return requestObjectClass.isInstance(((SimpleMediatorResponse) o).getResponseObject());
     }
 }
