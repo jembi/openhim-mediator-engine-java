@@ -135,9 +135,10 @@ public class MyMediatorMain {
 
 # Request Handler Reference
 When receiving a request, the engine will send your actor a `MediatorHTTPRequest` message. This message contains a reference to the request handler actor, and it is this actor that you send messages to in order to manage the final mediator response. The messages it supports are as follows:
-* **FinishRequestMessage** - Finalize the request and send the response. Note that the request actor instances will be stopped at this point (the engine will send a `PoisonPill` message).
-* **ExceptErrorMessage** - An exception has occured and the request should end with a `500 Internal Server Error` response.
-* **AddOrchestrationToCoreResponseMessage** - Add orchestration details to the request response. This message can be sent as many times as required.
+* **FinishRequest** - Finalize the request and send the response. Note that the request actor instances will be stopped at this point (the engine will send a `PoisonPill` message).
+* **ExceptError** - An exception has occured and the request should end with a `500 Internal Server Error` response.
+* **AddOrchestrationToCoreResponse** - Add orchestration details to the request response. This message can be sent as many times as required.
+* **PutPropertyInCoreResponse** - Put a name/value pair property in the request response. This message can be sent as many times as required.
 
 # Connectors
 The mediator engine provides serveral connectors that you can use in order to connect to other services. These are running as actors on the root context, so can be looked up as an `ActorSelection`:

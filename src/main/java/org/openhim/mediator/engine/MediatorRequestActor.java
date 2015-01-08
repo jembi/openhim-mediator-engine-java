@@ -14,10 +14,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import fi.iki.elonen.NanoHTTPD;
 import org.apache.http.HttpStatus;
-import org.openhim.mediator.engine.messages.AddOrchestrationToCoreResponse;
-import org.openhim.mediator.engine.messages.ExceptError;
-import org.openhim.mediator.engine.messages.FinishRequest;
-import org.openhim.mediator.engine.messages.NanoIHTTPWrapper;
+import org.openhim.mediator.engine.messages.*;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -166,6 +163,8 @@ public class MediatorRequestActor extends UntypedActor {
             exceptError(((ExceptError) msg).getError());
         } else if (msg instanceof AddOrchestrationToCoreResponse) {
             response.addOrchestration(((AddOrchestrationToCoreResponse)msg).getOrchestration());
+        } else if (msg instanceof PutPropertyInCoreResponse) {
+            response.putProperty(((PutPropertyInCoreResponse) msg).getName(), ((PutPropertyInCoreResponse) msg).getValue());
         } else {
             unhandled(msg);
         }
