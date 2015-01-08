@@ -39,9 +39,12 @@ public class MediatorServer extends NanoHTTPD {
     }
 
     private final LoggingAdapter log;
+
     private final ActorSystem system;
+    private boolean isDefaultActorSystem = false;
     private final ActorRef rootActor;
     private final MediatorConfig config;
+
 
     public MediatorServer(ActorSystem system, MediatorConfig config) {
         super(config.getServerHost(), config.getServerPort());
@@ -54,6 +57,7 @@ public class MediatorServer extends NanoHTTPD {
 
     public MediatorServer(MediatorConfig config) {
         this(ActorSystem.create("mediator"), config);
+        isDefaultActorSystem = true;
     }
 
 
@@ -86,8 +90,24 @@ public class MediatorServer extends NanoHTTPD {
 
     @Override
     public void start() throws IOException {
+        start(true);
+    }
+
+    public void start(boolean registerMediatorWithCore) throws IOException {
         super.start();
-        Inbox inbox = Inbox.create(system);
-        inbox.send(rootActor, new RegisterMediatorWithCore());
+
+        if (registerMediatorWithCore) {
+            Inbox inbox = Inbox.create(system);
+            inbox.send(rootActor, new RegisterMediatorWithCore());
+        }
+    }
+
+    @Override
+    public void stop() {
+        super.stop();
+
+        if (isDefaultActorSystem) {
+            system.shutdown();
+        }
     }
 }
