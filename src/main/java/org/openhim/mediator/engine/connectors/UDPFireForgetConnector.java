@@ -69,8 +69,8 @@ public class UDPFireForgetConnector extends UntypedActor {
                     }
                 }
             }, ec);
-        } catch (IOException | UnsupportedOperationException ex) {
-            req.getRequestHandler().tell(new ExceptError(ex), getSelf());
+        } catch (Exception ex) {
+            log.error(ex, "Exception");
         }
     }
 
