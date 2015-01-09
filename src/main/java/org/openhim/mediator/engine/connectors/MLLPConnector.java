@@ -25,6 +25,7 @@ import org.openhim.mediator.engine.messages.MediatorSocketResponse;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 
+import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -92,9 +93,17 @@ public class MLLPConnector extends UntypedActor {
         return buffer.toString();
     }
 
+    private Socket getSocket(final MediatorSocketRequest req) throws IOException {
+        if (req.isSecure()) {
+            SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            return factory.createSocket(req.getHost(), req.getPort());
+        } else {
+            return new Socket(req.getHost(), req.getPort());
+        }
+    }
     private void sendRequest(final MediatorSocketRequest req) {
         try {
-            final Socket socket = new Socket(req.getHost(), req.getPort());
+            final Socket socket = getSocket(req);
 
             ExecutionContext ec = getContext().dispatcher();
             Future<String> f = future(new Callable<String>() {

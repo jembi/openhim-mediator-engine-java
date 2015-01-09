@@ -12,12 +12,18 @@ public class MediatorSocketRequest extends MediatorRequestMessage {
     private final String host;
     private final Integer port;
     private final String body;
+    private final boolean secure;
 
-    public MediatorSocketRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration, String correlationId, String host, Integer port, String body) {
+    public MediatorSocketRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration, String correlationId, String host, Integer port, String body, boolean secure) {
         super(requestHandler, respondTo, orchestration, correlationId);
         this.host = host;
         this.port = port;
         this.body = body;
+        this.secure = secure;
+    }
+
+    public MediatorSocketRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration, String correlationId, String host, Integer port, String body) {
+        this(requestHandler, respondTo, orchestration, correlationId, host, port, body, false);
     }
 
     public MediatorSocketRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration, String host, Integer port, String body) {
@@ -38,5 +44,9 @@ public class MediatorSocketRequest extends MediatorRequestMessage {
 
     public String getBody() {
         return body;
+    }
+
+    public boolean isSecure() {
+        return secure;
     }
 }

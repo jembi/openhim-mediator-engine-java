@@ -6,8 +6,6 @@
 
 package org.openhim.mediator.engine.connectors;
 
-import static akka.dispatch.Futures.future;
-
 import akka.actor.UntypedActor;
 import akka.dispatch.OnComplete;
 import akka.event.Logging;
@@ -19,25 +17,30 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ssl.*;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.openhim.mediator.engine.CoreResponse;
-import org.openhim.mediator.engine.messages.AddOrchestrationToCoreResponse;
-import org.openhim.mediator.engine.messages.ExceptError;
-import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
-import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.engine.messages.*;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
+
+import static akka.dispatch.Futures.future;
 
 /**
  * An actor that provides functionality for connecting to HTTP services.
@@ -45,11 +48,15 @@ import java.util.concurrent.Callable;
  * Supports the following messages:
  * <ul>
  * <li>MediatorHTTPRequest - responds with MediatorHTTPResponse</li>
+ * <li>SetupHTTPSCertificate - no response</li>
  * </ul>
  */
 public class HTTPConnector extends UntypedActor {
 
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+
+    private SSLContext sslContext;
+
 
     private void copyHeaders(MediatorHTTPRequest src, HttpUriRequest dst) {
         if (src.getHeaders()!=null) {
@@ -129,10 +136,20 @@ public class HTTPConnector extends UntypedActor {
     }
 
 
+    private CloseableHttpClient getHttpClient(final MediatorHTTPRequest req) {
+        if (sslContext!=null && "https".equalsIgnoreCase(req.getScheme())) {
+            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext);
+            return HttpClients.custom().setSSLSocketFactory(sslsf).build();
+        } else {
+            return HttpClients.createDefault();
+        }
+    }
+
     private void sendRequest(final MediatorHTTPRequest req) {
         try {
-            final CloseableHttpClient client = HttpClients.createDefault();
+            final CloseableHttpClient client = getHttpClient(req);
             final HttpUriRequest apacheRequest = buildApacheHttpRequest(req);
+
 
             ExecutionContext ec = getContext().dispatcher();
             Future<CloseableHttpResponse> f = future(new Callable<CloseableHttpResponse>() {
@@ -167,10 +184,41 @@ public class HTTPConnector extends UntypedActor {
         }
     }
 
+
+    private void setupHTTPSCertificate(SetupHTTPSCertificate msg) {
+        try {
+            KeyStore ks = KeyStore.getInstance("JKS");
+            FileInputStream ksIn = new FileInputStream(new File(msg.getKeyStoreName()));
+            ks.load(ksIn, msg.getKeyStorePassword().toCharArray());
+            IOUtils.closeQuietly(ksIn);
+
+            KeyStore ts = KeyStore.getInstance("JKS");
+            FileInputStream tsIn = new FileInputStream(new File(msg.getTrustStoreName()));
+            ts.load(tsIn, null);
+            IOUtils.closeQuietly(tsIn);
+
+            TrustStrategy strat = null;
+            if (msg.getTrustSelfSigned()) {
+                strat = new TrustSelfSignedStrategy();
+            }
+
+            sslContext = SSLContexts.custom()
+                    .loadKeyMaterial(ks, msg.getKeyStorePassword().toCharArray())
+                    .loadTrustMaterial(ts, strat)
+                    .build();
+        } catch (NoSuchAlgorithmException | KeyManagementException | UnrecoverableKeyException |
+                KeyStoreException | IOException | CertificateException ex) {
+            log.error(ex, "Exception during processing of SetupHTTPSCertificate message");
+            sslContext = null;
+        }
+    }
+
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof MediatorHTTPRequest) {
             sendRequest((MediatorHTTPRequest) msg);
+        } else if (msg instanceof SetupHTTPSCertificate) {
+            setupHTTPSCertificate((SetupHTTPSCertificate) msg);
         } else {
             unhandled(msg);
         }

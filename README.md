@@ -150,7 +150,7 @@ connecter.tell(httpRequest, getSelf());
 The connectors are loaded on the path: "/user/**{mediator-name}**/**{connector-name}**" during mediator initialization. All the connectors will automatically add an orchestration item to the final mediator response (except for the `udp-fire-forget-connector`).
 
 ## `http-connector`
-Provides connection to HTTP services. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`.
+Provides connection to HTTP services. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`. Also accepts `SetupHTTPSCertificate` for SSL configuration; although note that this is not required to be sent in order to use https.
 
 ## `core-api-connector`
 An adaptor to the http-connector that adds the authentication headers as required by the OpenHIM Core API. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`. It will use the auth details provided in the mediator config supplied to the mediator server. It also supports the `RegisterMediatorWithCore` message, although this is automatically called by the engine.
