@@ -1,0 +1,31 @@
+{
+  "urn": "urn:mediator:test.mediator",
+  "version": "1.0.0",
+  "name": "test.mediator",
+  "description": "A test mediator",
+  "endpoints": [
+    {
+      "name": "Mediator",
+      "host": "localhost",
+      "port": "8800",
+      "type": "http"
+    }
+  ],
+  "defaultChannelConfig": [
+    {
+      "name": "Mediator",
+      "urlPattern": "^/mediator$",
+      "type": "http",
+      "allow": ["test"],
+      "routes": [
+        {
+          "name": "Mediator",
+          "host": "localhost",
+          "port": "8800",
+          "type": "http",
+          "primary": "true"
+        }
+      ]
+    }
+  ]
+}

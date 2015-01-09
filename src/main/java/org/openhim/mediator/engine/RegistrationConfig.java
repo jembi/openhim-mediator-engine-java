@@ -10,6 +10,8 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Configuration required for registering the mediator with core.
@@ -24,11 +26,18 @@ public class RegistrationConfig {
     private String method = "POST";
     private String contentType = "application/json";
     private String content;
+    private String urn;
 
+    /**
+     * @param content The JSON registration content
+     */
     public RegistrationConfig(String content) {
         this.content = content;
     }
 
+    /**
+     * @see #RegistrationConfig(String)
+     */
     public RegistrationConfig(InputStream content) throws IOException {
         this.content = IOUtils.toString(content);
     }
@@ -63,5 +72,30 @@ public class RegistrationConfig {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    /**
+     * Reads and returns the mediator URN from the JSON content.
+     *
+     * @see #RegistrationConfig(String)
+     */
+    public String getURN() throws InvalidRegistrationContentException {
+        if (urn==null) {
+            String pattern = "\"urn\"\\s*:\\s*\"(.*)\"";
+            Matcher matcher = Pattern.compile(pattern).matcher(content);
+            if (matcher.find()) {
+                urn = matcher.group(1);
+            } else {
+                throw new InvalidRegistrationContentException("Failed to parse 'urn'");
+            }
+        }
+
+        return urn;
+    }
+
+    public static class InvalidRegistrationContentException extends Exception {
+        public InvalidRegistrationContentException(String message) {
+            super(message);
+        }
     }
 }

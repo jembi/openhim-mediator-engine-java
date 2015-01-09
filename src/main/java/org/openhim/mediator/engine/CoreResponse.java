@@ -7,6 +7,7 @@
 package org.openhim.mediator.engine;
 
 import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -161,10 +162,21 @@ public class CoreResponse implements Serializable {
         }
     }
 
+    @SerializedName("x-mediator-urn")
+    private String urn;
     private String status;
     private Response response;
     private List<Orchestration> orchestrations = new ArrayList<Orchestration>();
     private Map<String, String> properties = new HashMap<String, String>();
+
+
+    public String getUrn() {
+        return urn;
+    }
+
+    public void setUrn(String urn) {
+        this.urn = urn;
+    }
 
     public String getStatus() {
         return status;

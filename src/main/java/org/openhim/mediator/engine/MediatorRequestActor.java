@@ -47,6 +47,13 @@ public class MediatorRequestActor extends UntypedActor {
 
     public MediatorRequestActor(MediatorConfig config) {
         this.config = config;
+
+        try {
+            response.setUrn(config.getRegistrationConfig().getURN());
+        } catch (RegistrationConfig.InvalidRegistrationContentException ex) {
+            log.error(ex, "Could not read URN");
+            log.warning("'x-mediator-urn' will not be included in the mediator response");
+        }
     }
 
 
