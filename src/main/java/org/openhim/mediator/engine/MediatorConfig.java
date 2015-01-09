@@ -63,6 +63,15 @@ public class MediatorConfig {
     }
 
     /**
+     * Get a user path for an actor below the root context.
+     * Useful for looking up startup actors or connectors, e.g.
+     * <code>ActorSelection httpConnector = getContext().actorSelection(config.userPathFor("http-connector"));</code>
+     */
+    public String userPathFor(String actor) {
+        return "/user/" + name + "/" + actor;
+    }
+
+    /**
      * @see #setServerHost(String)
      */
     public String getServerHost() {
@@ -225,6 +234,13 @@ public class MediatorConfig {
      */
     public Properties getProperties() {
         return properties;
+    }
+
+    /**
+     * @see #setProperties(java.util.Properties)
+     */
+    public String getProperty(String key) {
+        return properties.getProperty(key);
     }
 
     /**

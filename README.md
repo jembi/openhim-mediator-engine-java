@@ -136,18 +136,18 @@ public class MyMediatorMain {
 # Request Handler Reference
 When receiving a request, the engine will send your actor a `MediatorHTTPRequest` message. This message contains a reference to the request handler actor, and it is this actor that you send messages to in order to manage the final mediator response. The messages it supports are as follows:
 * **FinishRequest** - Finalize the request and send the response. Note that the request actor instances will be stopped at this point (the engine will send a `PoisonPill` message).
-* **ExceptError** - An exception has occured and the request should end with a `500 Internal Server Error` response.
+* **ExceptError** - An exception has occurred and the request should end with a `500 Internal Server Error` response.
 * **AddOrchestrationToCoreResponse** - Add orchestration details to the request response. This message can be sent as many times as required.
 * **PutPropertyInCoreResponse** - Put a name/value pair property in the request response. This message can be sent as many times as required.
 
 # Connectors
-The mediator engine provides serveral connectors that you can use in order to connect to other services. These are running as actors on the root context, so can be looked up as an `ActorSelection`:
+The mediator engine provides several connectors that you can use in order to connect to other services. These are running as actors on the root context, so can be looked up as an `ActorSelection`:
 ```
-ActorSelection connector = getContext().actorSelection("/user/my-mediator/http-connector");
+ActorSelection connector = getContext().actorSelection(config.userPathFor("http-connector"));
 MediatorHTTPRequest httpRequest = new MediatorHTTPRequest(...);
 connecter.tell(httpRequest, getSelf());
 ```
-The connectors are available on the path: "/user/**{mediator-name}**/**{connector-name}**". All the connectors will automatically add an orchestration item to the final mediator response (except for the `udp-fire-forget-connector`).
+The connectors are loaded on the path: "/user/**{mediator-name}**/**{connector-name}**" during mediator initialization. All the connectors will automatically add an orchestration item to the final mediator response (except for the `udp-fire-forget-connector`).
 
 ## `http-connector`
 Provides connection to HTTP services. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`.
@@ -174,7 +174,7 @@ try {
 }
 ```
 
-In addition, you don't need to stress about undhandled exceptions either. Akka will automatically restart any actors that failed due to an exception. See the [Akka documentation](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html) for further details (the engine uses the default supervisor strategy, by default).
+In addition, you don't need to stress about unhandled exceptions either. Akka will automatically restart any actors that failed due to an exception. See the [Akka documentation](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html) for further details (the engine uses the default supervisor strategy, by default).
 
 # Config Handle
 For convenience, any actors that are setup in the routing table can get a handle to the mediator config if it has a constructor that takes `MediatorConfig` as a parameter. If available, the engine will pass through a reference when routing to the actor:
@@ -210,7 +210,7 @@ To add new actors, create an actor class, such as the discussed in the **Getting
 ActorRef actor = getContext().actorOf(Props.create(SomeActor.class));
 actor.tell(aMsg, getSelf());
 ```
-The actor will be instantiated as a child of the current actor. Note that any actors that form part of the request handler heirarchy will be stopped once the request finishes. For example `MyActor` in **Getting Started** and any child actors that it, and they in turn, instantiate would form part of the heirarchy. The stop happens with a [`PoisonPill`](http://doc.akka.io/docs/akka/2.3.8/java/untyped-actors.html#PoisonPill) message, so the actors will have a chance to finish processing any current messages first.
+The actor will be instantiated as a child of the current actor. Note that any actors that form part of the request handler hierarchy will be stopped once the request finishes. For example `MyActor` in **Getting Started** and any child actors that it, and they in turn, instantiate would form part of the hierarchy. The stop happens with a [`PoisonPill`](http://doc.akka.io/docs/akka/2.3.8/java/untyped-actors.html#PoisonPill) message, so the actors will have a chance to finish processing any current messages first.
 
 Another option, useful for any single instance actors, is to launch them on startup and then reference them using `actorSelection`:
 ```
@@ -227,7 +227,7 @@ ActorSelection actor = getContext().actorSelection("/user/my-mediator/some-actor
 actor.tell(aMsg, getSelf());
 ```
 
-Although deciding on when to instatiate actors ulitimately depends on your own implementation, we follow the convention of using per-request (`actorOf` used within the request context) for any actors that require any state that's specific to the request and single instance actors (startup actors and `actorSelection`) otherwise.
+Although deciding on when to instantiate actors ultimately depends on your own implementation, we follow the convention of using per-request (`actorOf` used within the request context) for any actors that require any state that's specific to the request and single instance actors (startup actors and `actorSelection`) otherwise.
 
 # License
 This software is licensed under the Mozilla Public License Version 2.0.
