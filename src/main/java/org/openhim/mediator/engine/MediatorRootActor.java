@@ -27,7 +27,7 @@ import java.util.concurrent.Callable;
  * <br/><br/>
  * Its roles are to:
  * <ul>
- * <li>launch/kill new request actors,</li>
+ * <li>launch new request actors,</li>
  * <li>contain the request context,</li>
  * <li>launch all single instance actors on startup, and</li>
  * <li>trigger the registration of the mediator to core.</li>
@@ -77,7 +77,6 @@ public class MediatorRootActor extends UntypedActor {
         f.onComplete(new OnComplete<Boolean>() {
             @Override
             public void onComplete(Throwable throwable, Boolean result) throws Throwable {
-                requestActor.tell(PoisonPill.getInstance(), getSelf());
                 if (throwable!=null) {
                     log.error(throwable, "Request containment exception");
                 }

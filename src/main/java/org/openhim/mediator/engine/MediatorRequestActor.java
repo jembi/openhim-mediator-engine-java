@@ -6,10 +6,7 @@
 
 package org.openhim.mediator.engine;
 
-import akka.actor.Actor;
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.actor.UntypedActor;
+import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import fi.iki.elonen.NanoHTTPD;
@@ -42,6 +39,11 @@ public class MediatorRequestActor extends UntypedActor {
 
     private ActorRef requestCaller;
     private CoreResponse response = new CoreResponse();
+    private String coreTransactionID;
+    private boolean async = false;
+    //finalizingRequest becomes true as soon as we "respondAndEnd()"
+    private boolean finalizingRequest = false;
+
     private final MediatorConfig config;
 
 
@@ -97,8 +99,32 @@ public class MediatorRequestActor extends UntypedActor {
             resp.setBody(session.getUri() + " not found");
             resp.putHeader("Content-Type", "text/plain");
             response.setResponse(resp);
-            respondToCaller(HttpStatus.SC_NOT_FOUND);
+            respondAndEnd(HttpStatus.SC_NOT_FOUND);
         }
+    }
+
+    private void enableAsyncProcessing() {
+        if (coreTransactionID==null || coreTransactionID.isEmpty()) {
+            exceptError(new RuntimeException("Cannot enable asyncronous processing if X-OpenHIM-TransactionID is unknown"));
+            return;
+        }
+
+        log.info("Accepted async request. Responding to client.");
+        async = true;
+
+        //store existing response
+        CoreResponse.Response _resp = response.getResponse();
+
+        //respond with 202
+        CoreResponse.Response accepted = new CoreResponse.Response();
+        accepted.setStatus(HttpStatus.SC_ACCEPTED);
+        accepted.setBody("Accepted request");
+        response.setResponse(accepted);
+
+        respondToCaller(HttpStatus.SC_ACCEPTED);
+
+        //restore response
+        response.setResponse(_resp);
     }
 
     private void processFinishRequestMessage(FinishRequest msg) {
@@ -111,11 +137,12 @@ public class MediatorRequestActor extends UntypedActor {
             resp.setStatus(msg.getResponseStatus());
             response.setResponse(resp);
         }
-        respondToCaller(msg.getResponseStatus());
+        respondAndEnd(msg.getResponseStatus());
     }
 
     private void exceptError(Throwable t) {
         log.error(t, "Exception while processing request");
+
         if (response.getResponse()==null) {
             CoreResponse.Response resp = new CoreResponse.Response();
             resp.setBody(t.getMessage());
@@ -123,7 +150,57 @@ public class MediatorRequestActor extends UntypedActor {
             resp.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
             response.setResponse(resp);
         }
-        respondToCaller(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+        respondAndEnd(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+    }
+
+    private void updateTransactionToCoreAPI() {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+
+        MediatorHTTPRequest request = new MediatorHTTPRequest(
+                getSelf(),
+                getSelf(),
+                "core-api-update-transaction",
+                "PUT",
+                "https",
+                config.getCoreHost(),
+                config.getCoreAPIPort(),
+                "/transactions/" + coreTransactionID,
+                response.toJSON(),
+                headers,
+                null
+        );
+
+        log.info("Sending updated transaction (" + coreTransactionID + ") to core");
+        ActorSelection coreConnector = getContext().actorSelection(config.userPathFor("core-api-connector"));
+        coreConnector.tell(request, getSelf());
+    }
+
+    private void processResponseFromCoreAPI(MediatorHTTPResponse response) {
+        try {
+            log.info("Received response from core - status " + response.getStatusCode());
+            log.info(response.getBody());
+        } finally {
+            endRequest();
+        }
+    }
+
+    private void respondAndEnd(Integer status) {
+        if (finalizingRequest) {
+            return;
+        }
+
+        finalizingRequest = true;
+
+        if (async) {
+            updateTransactionToCoreAPI();
+        } else {
+            try {
+                respondToCaller(status);
+            } finally {
+                endRequest();
+            }
+        }
     }
 
     private void respondToCaller(Integer status) {
@@ -159,19 +236,35 @@ public class MediatorRequestActor extends UntypedActor {
         };
     }
 
+    /**
+     * To be called when the request handler is all done
+     */
+    private void endRequest() {
+        getContext().stop(getSelf());
+    }
+
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof NanoHTTPD.IHTTPSession) {
             requestCaller = getSender();
+            coreTransactionID = ((NanoHTTPD.IHTTPSession) msg).getHeaders().get("X-OpenHIM-TransactionID");
             routeRequest((NanoHTTPD.IHTTPSession) msg);
+        } else if (msg instanceof AcceptedAsyncRequest) {
+            enableAsyncProcessing();
         } else if (msg instanceof FinishRequest) {
             processFinishRequestMessage((FinishRequest) msg);
         } else if (msg instanceof ExceptError) {
             exceptError(((ExceptError) msg).getError());
         } else if (msg instanceof AddOrchestrationToCoreResponse) {
-            response.addOrchestration(((AddOrchestrationToCoreResponse)msg).getOrchestration());
+            if (!finalizingRequest) {
+                response.addOrchestration(((AddOrchestrationToCoreResponse) msg).getOrchestration());
+            }
         } else if (msg instanceof PutPropertyInCoreResponse) {
-            response.putProperty(((PutPropertyInCoreResponse) msg).getName(), ((PutPropertyInCoreResponse) msg).getValue());
+            if (!finalizingRequest) {
+                response.putProperty(((PutPropertyInCoreResponse) msg).getName(), ((PutPropertyInCoreResponse) msg).getValue());
+            }
+        } else if (msg instanceof MediatorHTTPResponse) {
+            processResponseFromCoreAPI((MediatorHTTPResponse) msg);
         } else {
             unhandled(msg);
         }

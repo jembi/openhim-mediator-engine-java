@@ -12,10 +12,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ssl.*;
 import org.apache.http.entity.StringEntity;
@@ -95,6 +92,11 @@ public class HTTPConnector extends UntypedActor {
                 uriReq = new HttpPost(buildURI(req));
                 StringEntity entity = new StringEntity(req.getBody());
                 ((HttpPost) uriReq).setEntity(entity);
+                break;
+            case "PUT":
+                uriReq = new HttpPut(buildURI(req));
+                StringEntity putEntity = new StringEntity(req.getBody());
+                ((HttpPut) uriReq).setEntity(putEntity);
                 break;
             default:
                 throw new UnsupportedOperationException(req.getMethod() + " requests not supported");
