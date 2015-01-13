@@ -13,18 +13,7 @@ import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.TimeZone;
+import java.util.*;
 
 /**
  * A simple, tiny, nicely embeddable HTTP server in Java
@@ -870,7 +859,7 @@ public abstract class NanoHTTPD {
             this.inputStream = new PushbackInputStream(inputStream, BUFSIZE);
             this.outputStream = outputStream;
             String remoteIp = inetAddress.isLoopbackAddress() || inetAddress.isAnyLocalAddress() ? "127.0.0.1" : inetAddress.getHostAddress().toString();
-            headers = new HashMap<String, String>();
+            headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 
             headers.put("remote-addr", remoteIp);
             headers.put("http-client-ip", remoteIp);
@@ -916,7 +905,7 @@ public abstract class NanoHTTPD {
 
                 parms = new HashMap<String, String>();
                 if(null == headers) {
-                    headers = new HashMap<String, String>();
+                    headers = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
                 }
 
                 // Create a BufferedReader for parsing the header.
@@ -1037,7 +1026,8 @@ public abstract class NanoHTTPD {
                         }
                         postLine = postLineBuffer.toString().trim();
                         // Handle application/x-www-form-urlencoded
-                        if ("application/x-www-form-urlencoded".equalsIgnoreCase(contentType)) {
+                        //if ("application/x-www-form-urlencoded".equalsIgnoreCase(contentType)) {
+                        if (true) { //openhim mediator engine: we always want this to happen
                         	decodeParms(postLine, parms);
                         } else if (postLine.length() != 0) {
                         	// Special case for raw POST data => create a special files entry "postData" with raw content data
