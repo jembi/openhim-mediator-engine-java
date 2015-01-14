@@ -37,14 +37,14 @@ public class MediatorRequestActor extends UntypedActor {
 
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    private ActorRef requestCaller;
-    private CoreResponse response = new CoreResponse();
-    private String coreTransactionID;
-    private boolean async = false;
+    protected ActorRef requestCaller;
+    protected CoreResponse response = new CoreResponse();
+    protected String coreTransactionID;
+    protected boolean async = false;
     //finalizingRequest becomes true as soon as we "respondAndEnd()"
-    private boolean finalizingRequest = false;
+    protected boolean finalizingRequest = false;
 
-    private final MediatorConfig config;
+    protected final MediatorConfig config;
 
 
     public MediatorRequestActor(MediatorConfig config) {
