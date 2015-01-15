@@ -6,10 +6,13 @@
 
 package org.openhim.mediator.engine;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -246,5 +249,21 @@ public class CoreResponse implements Serializable {
     @Override
     public String toString() {
         return toJSON();
+    }
+
+
+    public static CoreResponse parse(String content) throws ParseException {
+        try {
+            Gson gson = new GsonBuilder().create();
+            return gson.fromJson(content, CoreResponse.class);
+        } catch (JsonParseException ex) {
+            throw new ParseException(ex);
+        }
+    }
+
+    public static class ParseException extends Exception {
+        public ParseException(Throwable cause) {
+            super(cause);
+        }
     }
 }

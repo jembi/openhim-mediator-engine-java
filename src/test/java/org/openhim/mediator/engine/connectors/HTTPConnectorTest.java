@@ -11,10 +11,14 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.apache.commons.io.IOUtils;
 import org.junit.*;
+import org.openhim.mediator.engine.MediatorRequestActor;
 import org.openhim.mediator.engine.messages.AddOrchestrationToCoreResponse;
 import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
 import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.engine.messages.PutPropertyInCoreResponse;
+import java.io.InputStream;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.Assert.*;
@@ -38,9 +42,6 @@ public class HTTPConnectorTest {
 
     @Before
     public void setUp() throws Exception {
-        stubFor(get(urlEqualTo("/test"))
-                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "text/plain").withBody("test"))
-        );
     }
 
     @After
@@ -49,6 +50,10 @@ public class HTTPConnectorTest {
 
     @Test
     public void testGETRequest() throws Exception {
+        stubFor(get(urlEqualTo("/test"))
+                        .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "text/plain").withBody("test"))
+        );
+
         new JavaTestKit(system) {{
             final ActorRef httpConnector = system.actorOf(Props.create(HTTPConnector.class));
 
@@ -66,7 +71,7 @@ public class HTTPConnectorTest {
             httpConnector.tell(GET_Request, getRef());
 
             final Object[] out =
-                    new ReceiveWhile<Object>(Object.class, duration("1 second")) {
+                    new ReceiveWhile<Object>(Object.class, duration("2 seconds")) {
                         @Override
                         protected Object match(Object msg) throws Exception {
                             if (msg instanceof MediatorHTTPResponse ||
@@ -97,6 +102,84 @@ public class HTTPConnectorTest {
 
             assertTrue("http-connector must send MediatorHTTPResponse", foundResponse);
             assertTrue("http-connector must send AddOrchestrationToCoreResponse", foundAddOrchestration);
+            verify(getRequestedFor(urlEqualTo("/test")));
+        }};
+    }
+
+    /**
+     * Test that application/json+openhim responses from servers are processed correctly
+     */
+    @Test
+    public void testOpenHIMJSONResponse() throws Exception {
+        InputStream coreResponseIn = getClass().getClassLoader().getResourceAsStream("core-response.json");
+        String coreResponse = IOUtils.toString(coreResponseIn);
+
+        stubFor(get(urlEqualTo("/test"))
+                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", MediatorRequestActor.OPENHIM_MIME_TYPE)
+                        .withBody(coreResponse))
+        );
+
+        new JavaTestKit(system) {{
+            final ActorRef httpConnector = system.actorOf(Props.create(HTTPConnector.class));
+
+            MediatorHTTPRequest GET_Request = new MediatorHTTPRequest(
+                    getRef(),
+                    getRef(),
+                    "unit-test",
+                    "GET",
+                    "http",
+                    "localhost",
+                    8200,
+                    "/test"
+            );
+
+            httpConnector.tell(GET_Request, getRef());
+
+            final Object[] out =
+                    new ReceiveWhile<Object>(Object.class, duration("2 seconds")) {
+                        @Override
+                        protected Object match(Object msg) throws Exception {
+                            if (msg instanceof MediatorHTTPResponse ||
+                                    msg instanceof AddOrchestrationToCoreResponse ||
+                                    msg instanceof PutPropertyInCoreResponse) {
+                                return msg;
+                            }
+                            throw noMatch();
+                        }
+                    }.get();
+
+            boolean foundResponse = false;
+            int foundOrchestrations = 0;
+            int foundProperties = 0;
+
+            for (Object o : out) {
+                if (o instanceof MediatorHTTPResponse) {
+                    assertEquals(200, ((MediatorHTTPResponse) o).getStatusCode().intValue());
+                    assertEquals("a test response", ((MediatorHTTPResponse) o).getBody());
+                    assertEquals("text/plain", ((MediatorHTTPResponse) o).getHeaders().get("Content-Type"));
+                    foundResponse = true;
+                } else if (o instanceof AddOrchestrationToCoreResponse) {
+                    if ("orch1".equals(((AddOrchestrationToCoreResponse) o).getOrchestration().getName())) {
+                        assertEquals(new Integer(201), ((AddOrchestrationToCoreResponse) o).getOrchestration().getResponse().getStatus());
+                        foundOrchestrations++;
+                    } else if ("orch2".equals(((AddOrchestrationToCoreResponse) o).getOrchestration().getName())) {
+                        assertEquals(new Integer(200), ((AddOrchestrationToCoreResponse) o).getOrchestration().getResponse().getStatus());
+                        foundOrchestrations++;
+                    }
+                } else if (o instanceof PutPropertyInCoreResponse) {
+                    if ("pro1".equals(((PutPropertyInCoreResponse) o).getName())) {
+                        assertEquals("val1", ((PutPropertyInCoreResponse) o).getValue());
+                        foundProperties++;
+                    } else if ("pro2".equals(((PutPropertyInCoreResponse) o).getName())) {
+                        assertEquals("val2", ((PutPropertyInCoreResponse) o).getValue());
+                        foundProperties++;
+                    }
+                }
+            }
+
+            assertTrue("http-connector must send MediatorHTTPResponse", foundResponse);
+            assertTrue("http-connector must send AddOrchestrationToCoreResponse", foundOrchestrations==2);
+            assertTrue("http-connector must send PutPropertyInCoreResponse", foundProperties==2);
             verify(getRequestedFor(urlEqualTo("/test")));
         }};
     }

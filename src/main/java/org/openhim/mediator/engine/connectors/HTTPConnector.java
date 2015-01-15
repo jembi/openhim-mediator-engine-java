@@ -19,10 +19,10 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.openhim.mediator.engine.CoreResponse;
+import org.openhim.mediator.engine.MediatorRequestActor;
 import org.openhim.mediator.engine.messages.*;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,9 +32,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 
 import static akka.dispatch.Futures.future;
@@ -106,13 +106,55 @@ public class HTTPConnector extends UntypedActor {
         return uriReq;
     }
 
-    private MediatorHTTPResponse buildResponse(MediatorHTTPRequest req, CloseableHttpResponse apacheResponse) throws IOException {
+
+    private MediatorHTTPResponse buildResponseFromOpenHIMJSONContent(MediatorHTTPRequest req, CloseableHttpResponse apacheResponse) throws IOException, CoreResponse.ParseException {
         String content = IOUtils.toString(apacheResponse.getEntity().getContent());
+        CoreResponse parsedContent = CoreResponse.parse(content);
+        if (parsedContent.getResponse()==null) {
+            throw new CoreResponse.ParseException(new Exception("No response object found in application/json+openhim content"));
+        }
+
         int status = apacheResponse.getStatusLine().getStatusCode();
-        Map<String, String> headers = new HashMap<>();
+        if (parsedContent.getResponse().getStatus()!=null) {
+            status = parsedContent.getResponse().getStatus();
+        }
+
+        Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (Header hdr : apacheResponse.getAllHeaders()) {
             headers.put(hdr.getName(), hdr.getValue());
         }
+
+        if (parsedContent.getResponse().getHeaders()!=null) {
+            for (String hdr : parsedContent.getResponse().getHeaders().keySet()) {
+                headers.put(hdr, parsedContent.getResponse().getHeaders().get(hdr));
+            }
+        }
+
+        if (parsedContent.getOrchestrations()!=null) {
+            for (CoreResponse.Orchestration orch : parsedContent.getOrchestrations()) {
+                req.getRequestHandler().tell(new AddOrchestrationToCoreResponse(orch), getSelf());
+            }
+        }
+
+        if (parsedContent.getProperties()!=null) {
+            for (String prop : parsedContent.getProperties().keySet()) {
+                req.getRequestHandler().tell(new PutPropertyInCoreResponse(prop, parsedContent.getProperties().get(prop)), getSelf());
+            }
+        }
+
+        MediatorHTTPResponse response = new MediatorHTTPResponse(req, parsedContent.getResponse().getBody(), status, headers);
+        return response;
+    }
+
+    private MediatorHTTPResponse buildResponse(MediatorHTTPRequest req, CloseableHttpResponse apacheResponse) throws IOException {
+        String content = IOUtils.toString(apacheResponse.getEntity().getContent());
+        int status = apacheResponse.getStatusLine().getStatusCode();
+
+        Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (Header hdr : apacheResponse.getAllHeaders()) {
+            headers.put(hdr.getName(), hdr.getValue());
+        }
+
         MediatorHTTPResponse response = new MediatorHTTPResponse(req, content, status, headers);
         return response;
     }
@@ -147,6 +189,20 @@ public class HTTPConnector extends UntypedActor {
         }
     }
 
+    private String getContentType(CloseableHttpResponse response) {
+        if (response.getAllHeaders()==null) {
+            return null;
+        }
+
+        for (Header hdr : response.getAllHeaders()) {
+            if ("Content-Type".equalsIgnoreCase(hdr.getName())) {
+                return hdr.getValue();
+            }
+        }
+
+        return null;
+    }
+
     private void sendRequest(final MediatorHTTPRequest req) {
         try {
             final CloseableHttpClient client = getHttpClient(req);
@@ -168,7 +224,15 @@ public class HTTPConnector extends UntypedActor {
                         }
 
                         //send response
-                        MediatorHTTPResponse response = buildResponse(req, result);
+                        MediatorHTTPResponse response;
+                        String contentType = getContentType(result);
+
+                        if (contentType!=null && contentType.contains(MediatorRequestActor.OPENHIM_MIME_TYPE)) {
+                            response = buildResponseFromOpenHIMJSONContent(req, result);
+                        } else {
+                            response = buildResponse(req, result);
+                        }
+
                         req.getRespondTo().tell(response, getSelf());
 
                         //enrich engine response
