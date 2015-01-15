@@ -139,6 +139,7 @@ When receiving a request, the engine will send your actor a `MediatorHTTPRequest
 * **ExceptError** - An exception has occurred and the request should end with a `500 Internal Server Error` response.
 * **AddOrchestrationToCoreResponse** - Add orchestration details to the request response. This message can be sent as many times as required.
 * **PutPropertyInCoreResponse** - Put a name/value pair property in the request response. This message can be sent as many times as required.
+* **AcceptedAsyncRequest** - Indicates to the request handler that the request will be processed asyncronously. When this message is sent, the request handler will immediately respond to the client with a 202 (Accepted) status, and processing can continue. The request can still be finalized by sending a FinishRequest message. When this is done, the engine will send an update with the response details to the HIM core.
 
 # Connectors
 The mediator engine provides several connectors that you can use in order to connect to other services. These are running as actors on the root context, so can be looked up as an `ActorSelection`:
