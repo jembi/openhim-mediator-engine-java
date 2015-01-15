@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.openhim.mediator.engine.messages.*;
 import org.openhim.mediator.engine.testing.MockHTTPConnector;
 import org.openhim.mediator.engine.testing.MockLauncher;
+import org.openhim.mediator.engine.testing.TestingUtils;
 import scala.concurrent.duration.Duration;
 
 import java.io.IOException;
@@ -143,7 +144,7 @@ public class MediatorRequestActorTest {
         new JavaTestKit(system) {{
             //mock core api
             MockLauncher.ActorToLaunch mockCoreAPI = new MockLauncher.ActorToLaunch("core-api-connector", MockCoreAPI.class);
-            MockLauncher.launchActors(system, testConfig.getName(), Collections.singletonList(mockCoreAPI));
+            TestingUtils.launchActors(system, testConfig.getName(), Collections.singletonList(mockCoreAPI));
 
             //route to mock receiver
             RoutingTable table = new RoutingTable();
@@ -173,7 +174,7 @@ public class MediatorRequestActorTest {
             assertEquals(new Integer(200), actor.underlyingActor().response.getResponse().getStatus());
             assertEquals("async-routing", actor.underlyingActor().response.getResponse().getBody());
 
-            MockLauncher.clearActors(system, testConfig.getName());
+            TestingUtils.clearRootContext(system, testConfig.getName());
         }};
     }
 

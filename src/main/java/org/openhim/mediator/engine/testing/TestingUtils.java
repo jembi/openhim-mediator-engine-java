@@ -6,21 +6,33 @@
 
 package org.openhim.mediator.engine.testing;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.PoisonPill;
+import akka.actor.Props;
+
 import java.util.Collections;
+import java.util.List;
 
 public class TestingUtils {
     /**
      * Launch a mock http-connector on a specific root context
      */
     public static void launchMockHTTPConnector(ActorSystem system, String rootContext, Class<? extends MockHTTPConnector> mockConnector) {
-        MockLauncher.launchActors(system, rootContext, Collections.singletonList(new MockLauncher.ActorToLaunch("http-connector", mockConnector)));
+        launchActors(system, rootContext, Collections.singletonList(new MockLauncher.ActorToLaunch("http-connector", mockConnector)));
+    }
+
+    /**
+     * Launch actors on a specific root context
+     */
+    public static void launchActors(ActorSystem system, String rootContext, List<MockLauncher.ActorToLaunch> actorsToLaunch) {
+        system.actorOf(Props.create(MockLauncher.class, actorsToLaunch), rootContext);
     }
 
     /**
      * Clear the root context
      */
     public static void clearRootContext(ActorSystem system, String rootContext) {
-        MockLauncher.clearActors(system, rootContext);
+        system.actorSelection("/user/" + rootContext).tell(PoisonPill.getInstance(), ActorRef.noSender());
     }
 }

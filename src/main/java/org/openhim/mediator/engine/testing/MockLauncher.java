@@ -34,13 +34,4 @@ public class MockLauncher extends UntypedActor {
     public void onReceive(Object msg) throws Exception {
         unhandled(msg);
     }
-
-
-    public static void launchActors(ActorSystem system, String root, List<ActorToLaunch> actorsToLaunch) {
-        system.actorOf(Props.create(MockLauncher.class, actorsToLaunch), root);
-    }
-
-    public static void clearActors(ActorSystem system, String root) {
-        system.actorSelection("/user/" + root).tell(PoisonPill.getInstance(), ActorRef.noSender());
-    }
 }
