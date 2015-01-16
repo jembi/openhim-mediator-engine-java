@@ -9,7 +9,9 @@ package org.openhim.mediator.engine.messages;
 import akka.actor.ActorRef;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class MediatorHTTPRequest extends MediatorRequestMessage {
     private final String method;
@@ -51,6 +53,34 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
         );
     }
 
+    /**
+     * Copy constructor
+     */
+    public MediatorHTTPRequest(MediatorHTTPRequest requestToCopy) {
+        this(
+                requestToCopy.getRequestHandler(),
+                requestToCopy.getRespondTo(),
+                requestToCopy.getOrchestration(),
+                requestToCopy.getMethod(),
+                requestToCopy.getScheme(),
+                requestToCopy.getHost(),
+                requestToCopy.getPort(),
+                requestToCopy.getPath(),
+                requestToCopy.getBody(),
+                copyOfHeaders(requestToCopy.getHeaders()),
+                requestToCopy.getParams()!=null ? new HashMap<>(requestToCopy.getParams()) : null,
+                requestToCopy.getCorrelationId()
+        );
+    }
+
+    private static Map<String, String> copyOfHeaders(Map<String, String> headers) {
+        if (headers==null) {
+            return null;
+        }
+        Map<String, String> copy = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        copy.putAll(headers);
+        return copy;
+    }
 
     public String getMethod() {
         return method;

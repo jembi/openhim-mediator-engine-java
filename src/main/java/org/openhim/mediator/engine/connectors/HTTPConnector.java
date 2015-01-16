@@ -82,7 +82,7 @@ public class HTTPConnector extends UntypedActor {
     }
 
     private HttpUriRequest buildApacheHttpRequest(MediatorHTTPRequest req) throws URISyntaxException, UnsupportedEncodingException {
-        HttpUriRequest uriReq = null;
+        HttpUriRequest uriReq;
 
         switch (req.getMethod()) {
             case "GET":
@@ -97,6 +97,9 @@ public class HTTPConnector extends UntypedActor {
                 uriReq = new HttpPut(buildURI(req));
                 StringEntity putEntity = new StringEntity(req.getBody());
                 ((HttpPut) uriReq).setEntity(putEntity);
+                break;
+            case "DELETE":
+                uriReq = new HttpDelete(buildURI(req));
                 break;
             default:
                 throw new UnsupportedOperationException(req.getMethod() + " requests not supported");
@@ -142,11 +145,10 @@ public class HTTPConnector extends UntypedActor {
             }
         }
 
-        MediatorHTTPResponse response = new MediatorHTTPResponse(req, parsedContent.getResponse().getBody(), status, headers);
-        return response;
+        return new MediatorHTTPResponse(req, parsedContent.getResponse().getBody(), status, headers);
     }
 
-    private MediatorHTTPResponse buildResponse(MediatorHTTPRequest req, CloseableHttpResponse apacheResponse) throws IOException {
+    private MediatorHTTPResponse buildResponseFromContent(MediatorHTTPRequest req, CloseableHttpResponse apacheResponse) throws IOException {
         String content = IOUtils.toString(apacheResponse.getEntity().getContent());
         int status = apacheResponse.getStatusLine().getStatusCode();
 
@@ -155,11 +157,34 @@ public class HTTPConnector extends UntypedActor {
             headers.put(hdr.getName(), hdr.getValue());
         }
 
-        MediatorHTTPResponse response = new MediatorHTTPResponse(req, content, status, headers);
-        return response;
+        return new MediatorHTTPResponse(req, content, status, headers);
     }
 
-    private CoreResponse.Orchestration buildOrchestration(MediatorHTTPRequest req, MediatorHTTPResponse resp) {
+    private String getContentType(CloseableHttpResponse response) {
+        if (response.getAllHeaders()==null) {
+            return null;
+        }
+
+        for (Header hdr : response.getAllHeaders()) {
+            if ("Content-Type".equalsIgnoreCase(hdr.getName())) {
+                return hdr.getValue();
+            }
+        }
+
+        return null;
+    }
+
+    private MediatorHTTPResponse buildResponse(MediatorHTTPRequest req, CloseableHttpResponse apacheResponse) throws IOException, CoreResponse.ParseException {
+        String contentType = getContentType(apacheResponse);
+
+        if (contentType!=null && contentType.contains(MediatorRequestActor.OPENHIM_MIME_TYPE)) {
+            return buildResponseFromOpenHIMJSONContent(req, apacheResponse);
+        } else {
+            return buildResponseFromContent(req, apacheResponse);
+        }
+    }
+
+    private CoreResponse.Orchestration buildHTTPOrchestration(MediatorHTTPRequest req, MediatorHTTPResponse resp) {
         CoreResponse.Orchestration orch = new CoreResponse.Orchestration();
         orch.setName(req.getOrchestration());
 
@@ -189,27 +214,13 @@ public class HTTPConnector extends UntypedActor {
         }
     }
 
-    private String getContentType(CloseableHttpResponse response) {
-        if (response.getAllHeaders()==null) {
-            return null;
-        }
-
-        for (Header hdr : response.getAllHeaders()) {
-            if ("Content-Type".equalsIgnoreCase(hdr.getName())) {
-                return hdr.getValue();
-            }
-        }
-
-        return null;
-    }
-
     private void sendRequest(final MediatorHTTPRequest req) {
         try {
             final CloseableHttpClient client = getHttpClient(req);
             final HttpUriRequest apacheRequest = buildApacheHttpRequest(req);
 
 
-            ExecutionContext ec = getContext().dispatcher();
+            final ExecutionContext ec = getContext().dispatcher();
             Future<CloseableHttpResponse> f = future(new Callable<CloseableHttpResponse>() {
                 public CloseableHttpResponse call() throws IOException {
                     return client.execute(apacheRequest);
@@ -224,19 +235,11 @@ public class HTTPConnector extends UntypedActor {
                         }
 
                         //send response
-                        MediatorHTTPResponse response;
-                        String contentType = getContentType(result);
-
-                        if (contentType!=null && contentType.contains(MediatorRequestActor.OPENHIM_MIME_TYPE)) {
-                            response = buildResponseFromOpenHIMJSONContent(req, result);
-                        } else {
-                            response = buildResponse(req, result);
-                        }
-
+                        MediatorHTTPResponse response = buildResponse(req, result);
                         req.getRespondTo().tell(response, getSelf());
 
                         //enrich engine response
-                        CoreResponse.Orchestration orch = buildOrchestration(req, response);
+                        CoreResponse.Orchestration orch = buildHTTPOrchestration(req, response);
                         req.getRequestHandler().tell(new AddOrchestrationToCoreResponse(orch), getSelf());
                     } catch (Exception ex) {
                         req.getRequestHandler().tell(new ExceptError(ex), getSelf());

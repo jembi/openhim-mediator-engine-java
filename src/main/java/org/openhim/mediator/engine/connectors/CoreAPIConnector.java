@@ -115,10 +115,11 @@ public class CoreAPIConnector extends UntypedActor {
         return sb.toString();
     }
 
-    //TODO Akka messages are meant to be immutable, so it would be good to create a copy of the original request
-    private MediatorHTTPRequest getOriginalRequestWithAuthenticationHeaders(MediatorHTTPResponse response) {
+    private MediatorHTTPRequest copyOriginalRequestWithAuthenticationHeaders(MediatorHTTPResponse response) {
         String correlationId = response.getOriginalRequest().getCorrelationId();
         MediatorHTTPRequest originalRequest = activeRequests.remove(correlationId);
+        MediatorHTTPRequest request = new MediatorHTTPRequest(originalRequest);
+
         try {
             if (response.getStatusCode()!=200) {
                 String msg = String.format("Core responded with %s (%s)", response.getStatusCode(), response.getBody());
@@ -131,12 +132,12 @@ public class CoreAPIConnector extends UntypedActor {
             String passHash = hash(authResponse.salt + config.getCoreAPIPassword());
             String token = hash(passHash + authResponse.salt + authResponse.ts);
 
-            originalRequest.getHeaders().put("auth-username", config.getCoreAPIUsername());
-            originalRequest.getHeaders().put("auth-ts", authResponse.ts);
-            originalRequest.getHeaders().put("auth-salt", authResponse.salt);
-            originalRequest.getHeaders().put("auth-token", token);
+            request.getHeaders().put("auth-username", config.getCoreAPIUsername());
+            request.getHeaders().put("auth-ts", authResponse.ts);
+            request.getHeaders().put("auth-salt", authResponse.salt);
+            request.getHeaders().put("auth-token", token);
 
-            return originalRequest;
+            return request;
         } catch (NoSuchAlgorithmException | CoreGetAuthenticationDetailsError e) {
             originalRequest.getRequestHandler().tell(new ExceptError(e), getSelf());
         }
@@ -150,7 +151,7 @@ public class CoreAPIConnector extends UntypedActor {
     }
 
     private void sendToHTTPConnector(MediatorHTTPRequest request) {
-        ActorSelection httpConnector = getContext().actorSelection("/user/" + config.getName() + "/http-connector");
+        ActorSelection httpConnector = getContext().actorSelection(config.userPathFor("http-connector"));
         httpConnector.tell(request, getSelf());
     }
 
@@ -166,7 +167,7 @@ public class CoreAPIConnector extends UntypedActor {
                 log.info("Sent mediator registration message to core");
                 log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getBody()));
             } else if ("get-auth-details".equals(((MediatorHTTPResponse) msg).getOriginalRequest().getOrchestration())) {
-                MediatorHTTPRequest originalRequest = getOriginalRequestWithAuthenticationHeaders((MediatorHTTPResponse) msg);
+                MediatorHTTPRequest originalRequest = copyOriginalRequestWithAuthenticationHeaders((MediatorHTTPResponse) msg);
                 if (msg!=null) {
                     sendToHTTPConnector(originalRequest);
                 }
