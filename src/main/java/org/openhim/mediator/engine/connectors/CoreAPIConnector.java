@@ -99,7 +99,7 @@ public class CoreAPIConnector extends UntypedActor {
         );
     }
 
-    private static String hash(String s) throws NoSuchAlgorithmException {
+    protected static String hash(String s) throws NoSuchAlgorithmException {
         //thanks to http://www.mkyong.com/java/java-sha-hashing-example/
 
         MessageDigest md = MessageDigest.getInstance("SHA-512");
@@ -168,7 +168,7 @@ public class CoreAPIConnector extends UntypedActor {
                 log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getBody()));
             } else if ("get-auth-details".equals(((MediatorHTTPResponse) msg).getOriginalRequest().getOrchestration())) {
                 MediatorHTTPRequest originalRequest = copyOriginalRequestWithAuthenticationHeaders((MediatorHTTPResponse) msg);
-                if (msg!=null) {
+                if (originalRequest!=null) {
                     sendToHTTPConnector(originalRequest);
                 }
             } else {

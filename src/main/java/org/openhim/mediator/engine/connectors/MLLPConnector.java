@@ -101,6 +101,7 @@ public class MLLPConnector extends UntypedActor {
             return new Socket(req.getHost(), req.getPort());
         }
     }
+
     private void sendRequest(final MediatorSocketRequest req) {
         try {
             final Socket socket = getSocket(req);
