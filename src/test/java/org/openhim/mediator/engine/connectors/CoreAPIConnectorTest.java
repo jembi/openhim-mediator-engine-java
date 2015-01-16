@@ -160,7 +160,7 @@ public class CoreAPIConnectorTest {
 
             ExceptError response = expectMsgClass(Duration.create(1, TimeUnit.SECONDS), ExceptError.class);
             assertNotNull(response.getError());
-            assertNotNull(response.getError() instanceof CoreAPIConnector.CoreGetAuthenticationDetailsError);
+            assertTrue(response.getError() instanceof CoreAPIConnector.CoreGetAuthenticationDetailsError);
 
             TestingUtils.clearRootContext(system, testConfig.getName());
         }};
