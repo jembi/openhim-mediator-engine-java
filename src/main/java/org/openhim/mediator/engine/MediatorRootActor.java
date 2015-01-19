@@ -94,7 +94,7 @@ public class MediatorRootActor extends UntypedActor {
             containRequest((NanoHTTPD.ActorContainedRunnable) msg, requestHandler);
         } else if (config.getRegistrationConfig()!=null && msg instanceof RegisterMediatorWithCore) {
             log.info("Registering mediator with core...");
-            ActorSelection coreConnector = getContext().actorSelection("/user/" + getSelf().path().name() + "/core-api-connector");
+            ActorSelection coreConnector = getContext().actorSelection(config.userPathFor("core-api-connector"));
             coreConnector.tell(msg, getSelf());
         } else if (msg instanceof MediatorHTTPResponse) {
             log.info("Sent mediator registration message to core");

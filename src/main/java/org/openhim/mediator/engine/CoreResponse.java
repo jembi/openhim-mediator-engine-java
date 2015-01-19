@@ -185,6 +185,10 @@ public class CoreResponse implements Serializable {
         return status;
     }
 
+    /**
+     * Get a descriptive status string based on the status code:
+     * 'Successful', 'Completed', 'Completed with error(s)' or 'Failed'
+     */
     public String getDescriptiveStatus() {
         if (response!=null && response.getStatus()!=null) {
             if (response.getStatus()>=500 && response.getStatus()<600) {

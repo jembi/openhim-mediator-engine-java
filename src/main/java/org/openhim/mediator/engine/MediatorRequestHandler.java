@@ -25,7 +25,9 @@ import java.util.Map;
  * <ul>
  * <li>FinishRequestMessage</li>
  * <li>ExceptErrorMessage</li>
+ * <li>AcceptedAsyncRequest</li>
  * <li>AddOrchestrationToCoreResponseMessage</li>
+ * <li>PutPropertyInCoreResponse</li>
  * </ul>
  * </p>
  *
