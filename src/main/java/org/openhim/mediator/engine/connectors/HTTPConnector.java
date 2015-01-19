@@ -19,7 +19,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.openhim.mediator.engine.CoreResponse;
-import org.openhim.mediator.engine.MediatorRequestActor;
+import org.openhim.mediator.engine.MediatorRequestHandler;
 import org.openhim.mediator.engine.messages.*;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
@@ -177,7 +177,7 @@ public class HTTPConnector extends UntypedActor {
     private MediatorHTTPResponse buildResponse(MediatorHTTPRequest req, CloseableHttpResponse apacheResponse) throws IOException, CoreResponse.ParseException {
         String contentType = getContentType(apacheResponse);
 
-        if (contentType!=null && contentType.contains(MediatorRequestActor.OPENHIM_MIME_TYPE)) {
+        if (contentType!=null && contentType.contains(MediatorRequestHandler.OPENHIM_MIME_TYPE)) {
             return buildResponseFromOpenHIMJSONContent(req, apacheResponse);
         } else {
             return buildResponseFromContent(req, apacheResponse);

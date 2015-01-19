@@ -90,7 +90,7 @@ public class MediatorRootActor extends UntypedActor {
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof NanoHTTPD.ActorContainedRunnable) {
-            ActorRef requestHandler = getContext().actorOf(Props.create(MediatorRequestActor.class, config));
+            ActorRef requestHandler = getContext().actorOf(Props.create(MediatorRequestHandler.class, config));
             containRequest((NanoHTTPD.ActorContainedRunnable) msg, requestHandler);
         } else if (config.getRegistrationConfig()!=null && msg instanceof RegisterMediatorWithCore) {
             log.info("Registering mediator with core...");

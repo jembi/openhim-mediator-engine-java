@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
-public class MediatorRequestActorTest {
+public class MediatorRequestHandlerTest {
     /**
      * Mocks a mediator route receiver like someone using the engine will implement in order to receive requests.
      */
@@ -92,7 +92,7 @@ public class MediatorRequestActorTest {
             table.addRoute("/test", BasicRoutingMock.class);
             testConfig.setRoutingTable(table);
 
-            TestActorRef<MediatorRequestActor> actor = TestActorRef.create(system, Props.create(MediatorRequestActor.class, testConfig));
+            TestActorRef<MediatorRequestHandler> actor = TestActorRef.create(system, Props.create(MediatorRequestHandler.class, testConfig));
             NanoHTTPD.IHTTPSession testSession = buildMockIHTTPSession(actor, "/test", NanoHTTPD.Method.GET, Collections.<String, String>emptyMap());
             actor.tell(testSession, getRef());
 
@@ -158,7 +158,7 @@ public class MediatorRequestActorTest {
             testConfig.setRoutingTable(table);
 
             //route request
-            TestActorRef<MediatorRequestActor> actor = TestActorRef.create(system, Props.create(MediatorRequestActor.class, testConfig));
+            TestActorRef<MediatorRequestHandler> actor = TestActorRef.create(system, Props.create(MediatorRequestHandler.class, testConfig));
             assertFalse(actor.underlyingActor().async);
 
             NanoHTTPD.IHTTPSession testSession = buildMockIHTTPSession(actor, "/test", NanoHTTPD.Method.GET, Collections.singletonMap("X-OpenHIM-TransactionID", "test-async"));
@@ -212,7 +212,7 @@ public class MediatorRequestActorTest {
             table.addRoute("/test", ErrorRoutingMock.class);
             testConfig.setRoutingTable(table);
 
-            TestActorRef<MediatorRequestActor> actor = TestActorRef.create(system, Props.create(MediatorRequestActor.class, testConfig));
+            TestActorRef<MediatorRequestHandler> actor = TestActorRef.create(system, Props.create(MediatorRequestHandler.class, testConfig));
             NanoHTTPD.IHTTPSession testSession = buildMockIHTTPSession(actor, "/test", NanoHTTPD.Method.GET, Collections.<String, String>emptyMap());
             actor.tell(testSession, getRef());
 
@@ -227,7 +227,7 @@ public class MediatorRequestActorTest {
     @Test
     public void testMessage_AddOrchestrationToCoreResponse() throws Exception {
         new JavaTestKit(system) {{
-            TestActorRef<MediatorRequestActor> actor = TestActorRef.create(system, Props.create(MediatorRequestActor.class, testConfig));
+            TestActorRef<MediatorRequestHandler> actor = TestActorRef.create(system, Props.create(MediatorRequestHandler.class, testConfig));
 
             CoreResponse.Orchestration testOrch = new CoreResponse.Orchestration();
             testOrch.setName("unit-test");
@@ -244,7 +244,7 @@ public class MediatorRequestActorTest {
     @Test
     public void testMessage_PutPropertyInCoreResponse() throws Exception {
         new JavaTestKit(system) {{
-            TestActorRef<MediatorRequestActor> actor = TestActorRef.create(system, Props.create(MediatorRequestActor.class, testConfig));
+            TestActorRef<MediatorRequestHandler> actor = TestActorRef.create(system, Props.create(MediatorRequestHandler.class, testConfig));
 
             actor.tell(new PutPropertyInCoreResponse("test-property", "test-value"), getRef());
             expectNoMsg(Duration.create(500, TimeUnit.MILLISECONDS));

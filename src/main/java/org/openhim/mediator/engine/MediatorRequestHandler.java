@@ -31,7 +31,7 @@ import java.util.Map;
  *
  * @see RoutingTable
  */
-public class MediatorRequestActor extends UntypedActor {
+public class MediatorRequestHandler extends UntypedActor {
 
     public static final String OPENHIM_MIME_TYPE = "application/json+openhim";
 
@@ -47,7 +47,7 @@ public class MediatorRequestActor extends UntypedActor {
     protected final MediatorConfig config;
 
 
-    public MediatorRequestActor(MediatorConfig config) {
+    public MediatorRequestHandler(MediatorConfig config) {
         this.config = config;
 
         try {

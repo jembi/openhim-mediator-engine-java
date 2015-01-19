@@ -13,7 +13,7 @@ import akka.testkit.JavaTestKit;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
-import org.openhim.mediator.engine.MediatorRequestActor;
+import org.openhim.mediator.engine.MediatorRequestHandler;
 import org.openhim.mediator.engine.messages.*;
 
 import java.io.InputStream;
@@ -178,7 +178,7 @@ public class HTTPConnectorTest {
         String coreResponse = IOUtils.toString(coreResponseIn);
 
         stubFor(get(urlEqualTo("/test/him/json"))
-                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", MediatorRequestActor.OPENHIM_MIME_TYPE)
+                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", MediatorRequestHandler.OPENHIM_MIME_TYPE)
                         .withBody(coreResponse))
         );
 
