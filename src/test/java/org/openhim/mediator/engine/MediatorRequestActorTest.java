@@ -110,6 +110,12 @@ public class MediatorRequestActorTest {
             //accepted async
             msg.getRequestHandler().tell(new AcceptedAsyncRequest(), getSelf());
 
+            try {
+                //simulate a processing delay
+                //Thread.sleep would normally be bad to do in an actor, but should be okay for the unit test
+                Thread.sleep(200);
+            } catch (InterruptedException e) {}
+
             //end request
             FinishRequest fr = new FinishRequest("async-routing", "text/plain", HttpStatus.SC_OK);
             msg.getRequestHandler().tell(fr, getSelf());
@@ -160,7 +166,6 @@ public class MediatorRequestActorTest {
 
             //get response
             NanoHTTPD.Response response = expectMsgClass(Duration.create(1, TimeUnit.SECONDS), NanoHTTPD.Response.class);
-
             assertTrue("Async should be enabled", actor.underlyingActor().async);
             assertEquals("Core transaction ID should be set", "test-async", actor.underlyingActor().coreTransactionID);
 
@@ -168,11 +173,16 @@ public class MediatorRequestActorTest {
             String body = IOUtils.toString(response.getData());
             assertTrue(body.contains("\"status\":202"));
 
-            //but update response token with final result
+            CoreResponse coreResponse = actor.underlyingActor().response;
             assertNotNull(actor.underlyingActor().response);
-            assertNotNull(actor.underlyingActor().response.getResponse());
-            assertEquals(new Integer(200), actor.underlyingActor().response.getResponse().getStatus());
-            assertEquals("async-routing", actor.underlyingActor().response.getResponse().getBody());
+
+            //delay a bit waiting for the async update
+            expectNoMsg(Duration.create(1, TimeUnit.SECONDS));
+
+            //response token should be updated with final result
+            assertNotNull(coreResponse.getResponse());
+            assertEquals(new Integer(200), coreResponse.getResponse().getStatus());
+            assertEquals("async-routing", coreResponse.getResponse().getBody());
 
             TestingUtils.clearRootContext(system, testConfig.getName());
         }};
