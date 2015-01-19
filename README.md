@@ -3,8 +3,6 @@
 OpenHIM Mediator Engine
 =======================
 
-**:warning: Note that this project is still in version 0.x.x and the API and functionality is likely to change drastically**
-
 An engine for building OpenHIM mediators based on the [Akka](http://akka.io/) framework.
 
 # Yeoman Generator
@@ -23,7 +21,7 @@ Include the jar in your mediator project. If you're using Maven, simply add the 
 <dependency>
   <groupId>org.openhim</groupId>
   <artifactId>mediator-engine</artifactId>
-  <version>0.0.4</version>
+  <version>1.0.0</version>
 </dependency>
 ```
 
