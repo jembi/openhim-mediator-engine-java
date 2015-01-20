@@ -14,6 +14,14 @@
     <url>https://www.mozilla.org/MPL/2.0/</url>
   </license>
 </licenses>
+<developers>
+  <developer>
+    <name>Jembi Health Systems NPC</name>
+    <email>info@jembi.org</email>
+    <organization>Jembi Health Systems NPC</organization>
+    <organizationUrl>http://www.jembi.org</organizationUrl>
+  </developer>
+</developers>
 <organization>
   <name>Jembi Health Systems NPC</name>
   <url>http://www.jembi.org/</url>
