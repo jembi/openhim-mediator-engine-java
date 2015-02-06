@@ -12,7 +12,6 @@ import akka.actor.*;
 import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import fi.iki.elonen.NanoHTTPD;
 import org.openhim.mediator.engine.connectors.CoreAPIConnector;
 import org.openhim.mediator.engine.connectors.HTTPConnector;
 import org.openhim.mediator.engine.connectors.MLLPConnector;
@@ -66,11 +65,11 @@ public class MediatorRootActor extends UntypedActor {
         getContext().actorOf(Props.create(UDPFireForgetConnector.class), "udp-fire-forget-connector");
     }
 
-    private void containRequest(final NanoHTTPD.ActorContainedRunnable msg, final ActorRef requestActor) {
+    private void containRequest(final MediatorHTTPRequest request, final ActorRef requestActor) {
         ExecutionContext ec = getContext().dispatcher();
         Future<Boolean> f = future(new Callable<Boolean>() {
             public Boolean call() {
-                msg.run(requestActor);
+                //TODO
                 return Boolean.TRUE;
             }
         }, ec);
@@ -89,9 +88,9 @@ public class MediatorRootActor extends UntypedActor {
 
     @Override
     public void onReceive(Object msg) throws Exception {
-        if (msg instanceof NanoHTTPD.ActorContainedRunnable) {
+        if (msg instanceof MediatorHTTPRequest) {
             ActorRef requestHandler = getContext().actorOf(Props.create(MediatorRequestHandler.class, config));
-            containRequest((NanoHTTPD.ActorContainedRunnable) msg, requestHandler);
+            containRequest((MediatorHTTPRequest) msg, requestHandler);
         } else if (config.getRegistrationConfig()!=null && msg instanceof RegisterMediatorWithCore) {
             log.info("Registering mediator with core...");
             ActorSelection coreConnector = getContext().actorSelection(config.userPathFor("core-api-connector"));

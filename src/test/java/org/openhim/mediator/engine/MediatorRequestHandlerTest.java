@@ -6,14 +6,11 @@
 
 package org.openhim.mediator.engine;
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
-import fi.iki.elonen.NanoHTTPD;
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -93,12 +90,12 @@ public class MediatorRequestHandlerTest {
             testConfig.setRoutingTable(table);
 
             TestActorRef<MediatorRequestHandler> actor = TestActorRef.create(system, Props.create(MediatorRequestHandler.class, testConfig));
-            NanoHTTPD.IHTTPSession testSession = buildMockIHTTPSession(actor, "/test", NanoHTTPD.Method.GET, Collections.<String, String>emptyMap());
+            MediatorHTTPRequest testSession = new MediatorHTTPRequest(actor, getRef(), "/test", "GET", "http", "localhost", 1234, "/test");
             actor.tell(testSession, getRef());
 
-            NanoHTTPD.Response response = expectMsgClass(Duration.create(1, TimeUnit.SECONDS), NanoHTTPD.Response.class);
+            MediatorHTTPResponse response = expectMsgClass(Duration.create(1, TimeUnit.SECONDS), MediatorHTTPResponse.class);
 
-            String body = IOUtils.toString(response.getData());
+            String body = response.getBody();
             assertTrue(body.contains("\"body\":\"basic-routing\""));
             assertTrue(body.contains("\"status\":200"));
         }};
@@ -161,16 +158,18 @@ public class MediatorRequestHandlerTest {
             TestActorRef<MediatorRequestHandler> actor = TestActorRef.create(system, Props.create(MediatorRequestHandler.class, testConfig));
             assertFalse(actor.underlyingActor().async);
 
-            NanoHTTPD.IHTTPSession testSession = buildMockIHTTPSession(actor, "/test", NanoHTTPD.Method.GET, Collections.singletonMap("X-OpenHIM-TransactionID", "test-async"));
+            MediatorHTTPRequest testSession = new MediatorHTTPRequest(
+                    actor, getRef(), "/test", "GET", "http", "localhost", 1234, "/test", null, Collections.singletonMap("X-OpenHIM-TransactionID", "test-async"), null
+            );
             actor.tell(testSession, getRef());
 
             //get response
-            NanoHTTPD.Response response = expectMsgClass(Duration.create(1, TimeUnit.SECONDS), NanoHTTPD.Response.class);
+            MediatorHTTPResponse response = expectMsgClass(Duration.create(1, TimeUnit.SECONDS), MediatorHTTPResponse.class);
             assertTrue("Async should be enabled", actor.underlyingActor().async);
             assertEquals("Core transaction ID should be set", "test-async", actor.underlyingActor().coreTransactionID);
 
             //request handler should respond with 202 Accepted
-            String body = IOUtils.toString(response.getData());
+            String body = response.getBody();
             assertTrue(body.contains("\"status\":202"));
 
             CoreResponse coreResponse = actor.underlyingActor().response;
@@ -213,12 +212,12 @@ public class MediatorRequestHandlerTest {
             testConfig.setRoutingTable(table);
 
             TestActorRef<MediatorRequestHandler> actor = TestActorRef.create(system, Props.create(MediatorRequestHandler.class, testConfig));
-            NanoHTTPD.IHTTPSession testSession = buildMockIHTTPSession(actor, "/test", NanoHTTPD.Method.GET, Collections.<String, String>emptyMap());
+            MediatorHTTPRequest testSession = new MediatorHTTPRequest(actor, getRef(), "/test", "GET", "http", "localhost", 1234, "/test");
             actor.tell(testSession, getRef());
 
-            NanoHTTPD.Response response = expectMsgClass(Duration.create(1, TimeUnit.SECONDS), NanoHTTPD.Response.class);
+            MediatorHTTPResponse response = expectMsgClass(Duration.create(1, TimeUnit.SECONDS), MediatorHTTPResponse.class);
 
-            String body = IOUtils.toString(response.getData());
+            String body = response.getBody();
             assertTrue("The exception message should be returned in the body", body.contains("\"body\":\"test-exception (this is expected)\""));
             assertTrue("Expect status 500 Internal Server Error", body.contains("\"status\":500"));
         }};
@@ -253,61 +252,5 @@ public class MediatorRequestHandlerTest {
             assertNotNull(actor.underlyingActor().response.getProperties());
             assertEquals("test-value", actor.underlyingActor().response.getProperties().get("test-property"));
         }};
-    }
-
-
-    /**
-     * Mocks a received HTTP request
-     */
-    private NanoHTTPD.IHTTPSession buildMockIHTTPSession(final ActorRef requestHandler, final String path, final NanoHTTPD.Method method, final Map<String, String> headers) {
-        return new NanoHTTPD.IHTTPSession() {
-            @Override
-            public void execute() throws IOException {}
-
-            @Override
-            public Map<String, String> getParms() {
-                return null;
-            }
-
-            @Override
-            public Map<String, String> getHeaders() {
-                return headers;
-            }
-
-            @Override
-            public String getUri() {
-                return path;
-            }
-
-            @Override
-            public String getQueryParameterString() {
-                return null;
-            }
-
-            @Override
-            public NanoHTTPD.Method getMethod() {
-                return method;
-            }
-
-            @Override
-            public InputStream getInputStream() {
-                return null;
-            }
-
-            @Override
-            public NanoHTTPD.CookieHandler getCookies() {
-                return null;
-            }
-
-            @Override
-            public void parseBody(Map<String, String> files) throws IOException, NanoHTTPD.ResponseException {
-
-            }
-
-            @Override
-            public ActorRef getRequestActor() {
-                return requestHandler;
-            }
-        };
     }
 }
