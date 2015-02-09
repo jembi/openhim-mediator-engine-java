@@ -63,7 +63,7 @@ public class MediatorRequestHandler extends UntypedActor {
 
 
 
-    private void routeToActor(String route, Class<? extends Actor> clazz, MediatorHTTPRequest request) {
+    private void routeToActor(Class<? extends Actor> clazz, MediatorHTTPRequest request) {
         ActorRef actor = null;
         try {
             //can we pass the mediator config through?
@@ -83,7 +83,7 @@ public class MediatorRequestHandler extends UntypedActor {
 
         Class<? extends Actor> routeTo = config.getRoutingTable().getActorClassForPath(request.getPath());
         if (routeTo!=null) {
-            routeToActor(request.getPath(), routeTo, request);
+            routeToActor(routeTo, request);
         } else {
             CoreResponse.Response resp = new CoreResponse.Response();
             resp.setStatus(HttpStatus.SC_NOT_FOUND);
@@ -96,7 +96,7 @@ public class MediatorRequestHandler extends UntypedActor {
 
     private void enableAsyncProcessing() {
         if (coreTransactionID==null || coreTransactionID.isEmpty()) {
-            exceptError(new RuntimeException("Cannot enable asyncronous processing if X-OpenHIM-TransactionID is unknown"));
+            exceptError(new RuntimeException("Cannot enable asynchronous processing if X-OpenHIM-TransactionID is unknown"));
             return;
         }
 
