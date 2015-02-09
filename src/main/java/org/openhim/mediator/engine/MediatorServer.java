@@ -6,15 +6,16 @@
 
 package org.openhim.mediator.engine;
 
-import akka.actor.*;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import org.glassfish.grizzly.http.server.*;
+import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
 import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 /**
  * The mediator engine HTTP server.
@@ -26,6 +27,7 @@ public class MediatorServer {
     private boolean isDefaultActorSystem = false;
     private final ActorRef rootActor;
     private final MediatorConfig config;
+    private final HttpServer httpServer;
 
 
     public MediatorServer(ActorSystem system, MediatorConfig config) {
@@ -33,6 +35,9 @@ public class MediatorServer {
         this.rootActor = system.actorOf(Props.create(MediatorRootActor.class, config), config.getName());
         this.config = config;
         log = Logging.getLogger(system, "http-server");
+
+        httpServer = new HttpServer();
+        configureHttpServer();
     }
 
     public MediatorServer(MediatorConfig config) {
@@ -40,26 +45,36 @@ public class MediatorServer {
         isDefaultActorSystem = true;
     }
 
+    private void configureHttpServer() {
+        NetworkListener listener = new NetworkListener(config.getName(), config.getServerHost(), config.getServerPort());
+        //Disabled grizzly's thread pooling, we will handle our own threading (Akka)
+        listener.getTransport().setWorkerThreadPoolConfig(null);
+        httpServer.addListener(listener);
 
-    private FiniteDuration getRootTimeout() {
-        if (config.getRootTimeout()!=null) {
-            return Duration.create(config.getRootTimeout(), TimeUnit.MILLISECONDS);
-        }
-        return Duration.create(1, TimeUnit.MINUTES);
+        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                response.suspend();
+                rootActor.tell(new GrizzlyHTTPRequest(request, response), ActorRef.noSender());
+            }
+        });
     }
+
 
     public void start() throws IOException {
         start(true);
     }
 
     public void start(boolean registerMediatorWithCore) throws IOException {
+        httpServer.start();
+
         if (registerMediatorWithCore) {
-            Inbox inbox = Inbox.create(system);
-            inbox.send(rootActor, new RegisterMediatorWithCore());
+            rootActor.tell(new RegisterMediatorWithCore(), ActorRef.noSender());
         }
     }
 
     public void stop() {
+        httpServer.shutdownNow();
 
         if (isDefaultActorSystem) {
             system.shutdown();
