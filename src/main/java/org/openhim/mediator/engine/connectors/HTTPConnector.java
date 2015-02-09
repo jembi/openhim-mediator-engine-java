@@ -149,7 +149,11 @@ public class HTTPConnector extends UntypedActor {
     }
 
     private MediatorHTTPResponse buildResponseFromContent(MediatorHTTPRequest req, CloseableHttpResponse apacheResponse) throws IOException {
-        String content = IOUtils.toString(apacheResponse.getEntity().getContent());
+        String content = null;
+        if (apacheResponse.getEntity()!=null && apacheResponse.getEntity().getContent()!=null) {
+            content = IOUtils.toString(apacheResponse.getEntity().getContent());
+        }
+
         int status = apacheResponse.getStatusLine().getStatusCode();
 
         Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
