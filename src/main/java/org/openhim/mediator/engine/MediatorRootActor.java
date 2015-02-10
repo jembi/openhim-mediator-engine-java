@@ -93,9 +93,11 @@ public class MediatorRootActor extends UntypedActor {
                 try {
                     if (throwable != null) {
                         log.error(throwable, "Request containment exception");
-                    }
-                    if (result == null || !(result instanceof MediatorHTTPResponse)) {
-                        log.warning("Request handler responded with unexpected result: " + result);
+                        handleResponse(request.getResponseHandle(), 500, "text/plain", throwable.getMessage());
+                    } else if (result == null || !(result instanceof MediatorHTTPResponse)) {
+                        String err = "Request handler responded with unexpected result: " + result;
+                        log.warning(err);
+                        handleResponse(request.getResponseHandle(), 500, "text/plain", err);
                     } else {
                         MediatorHTTPResponse mediatorHTTPResponse = (MediatorHTTPResponse) result;
                         handleResponse(request.getResponseHandle(), mediatorHTTPResponse);
@@ -137,13 +139,17 @@ public class MediatorRootActor extends UntypedActor {
         );
     }
 
-    private void handleResponse(Response grizzlyResponseHandle, MediatorHTTPResponse mediatorHTTPResponse) throws IOException {
-        grizzlyResponseHandle.setContentType(mediatorHTTPResponse.getHeaders().get("Content-Type"));
-        grizzlyResponseHandle.setStatus(mediatorHTTPResponse.getStatusCode());
-        if (mediatorHTTPResponse.getBody()!=null) {
-            grizzlyResponseHandle.setContentLength(mediatorHTTPResponse.getBody().length());
+    private void handleResponse(Response grizzlyResponseHandle, MediatorHTTPResponse response) throws IOException {
+        handleResponse(grizzlyResponseHandle, response.getStatusCode(), response.getHeaders().get("Content-Type"), response.getBody());
+    }
+
+    private void handleResponse(Response grizzlyResponseHandle, Integer status, String contentType, String body) throws IOException {
+        grizzlyResponseHandle.setStatus(status);
+        if (contentType!=null && body!=null) {
+            grizzlyResponseHandle.setContentType(contentType);
+            grizzlyResponseHandle.setContentLength(body.length());
             grizzlyResponseHandle.setCharacterEncoding("UTF-8");
-            grizzlyResponseHandle.getWriter().write(mediatorHTTPResponse.getBody());
+            grizzlyResponseHandle.getWriter().write(body);
         }
     }
 
