@@ -6,53 +6,38 @@
 
 package org.openhim.mediator.engine;
 
-import akka.actor.*;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import fi.iki.elonen.NanoHTTPD;
+import org.glassfish.grizzly.http.server.*;
+import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
 import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
-import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * The mediator engine HTTP server.
  */
-public class MediatorServer extends NanoHTTPD {
-    private static class MediatorAsyncRunner implements AsyncRunner {
-        final ActorSystem system;
-        final ActorRef rootActor;
-
-        public MediatorAsyncRunner(ActorSystem system, ActorRef rootActor) {
-            this.system = system;
-            this.rootActor = rootActor;
-        }
-
-        @Override
-        public void exec(ActorContainedRunnable code) {
-            Inbox inbox = Inbox.create(system);
-            inbox.send(rootActor, code);
-        }
-    }
-
+public class MediatorServer {
     private final LoggingAdapter log;
 
     private final ActorSystem system;
     private boolean isDefaultActorSystem = false;
     private final ActorRef rootActor;
     private final MediatorConfig config;
+    private final HttpServer httpServer;
 
 
     public MediatorServer(ActorSystem system, MediatorConfig config) {
-        super(config.getServerHost(), config.getServerPort());
         this.system = system;
         this.rootActor = system.actorOf(Props.create(MediatorRootActor.class, config), config.getName());
         this.config = config;
-        setAsyncRunner(new MediatorAsyncRunner(system, rootActor));
         log = Logging.getLogger(system, "http-server");
+
+        httpServer = new HttpServer();
+        configureHttpServer();
     }
 
     public MediatorServer(MediatorConfig config) {
@@ -60,51 +45,36 @@ public class MediatorServer extends NanoHTTPD {
         isDefaultActorSystem = true;
     }
 
+    private void configureHttpServer() {
+        NetworkListener listener = new NetworkListener(config.getName(), config.getServerHost(), config.getServerPort());
+        //Disabled grizzly's thread pooling, we will handle our own threading (Akka)
+        listener.getTransport().setWorkerThreadPoolConfig(null);
+        httpServer.addListener(listener);
 
-    private FiniteDuration getRootTimeout() {
-        if (config.getRootTimeout()!=null) {
-            return Duration.create(config.getRootTimeout(), TimeUnit.MILLISECONDS);
-        }
-        return Duration.create(1, TimeUnit.MINUTES);
-    }
-
-    @Override
-    public Response serve(IHTTPSession session) {
-        try {
-            Inbox inbox = Inbox.create(system);
-            inbox.send(session.getRequestActor(), session);
-            Object result = inbox.receive(getRootTimeout());
-            return (Response) result;
-        } catch (Exception ex) {
-            String msg = "An internal server error occurred";
-
-            if (ex instanceof TimeoutException) {
-                msg = "Request timed out";
-                log.warning(msg);
-            } else {
-                log.error(ex, "Exception");
+        httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
+            @Override
+            public void service(Request request, Response response) throws Exception {
+                response.suspend();
+                rootActor.tell(new GrizzlyHTTPRequest(request, response), ActorRef.noSender());
             }
-            return new Response(Response.Status.INTERNAL_ERROR, "text/plain", msg);
-        }
+        });
     }
 
-    @Override
+
     public void start() throws IOException {
         start(true);
     }
 
     public void start(boolean registerMediatorWithCore) throws IOException {
-        super.start();
+        httpServer.start();
 
         if (registerMediatorWithCore) {
-            Inbox inbox = Inbox.create(system);
-            inbox.send(rootActor, new RegisterMediatorWithCore());
+            rootActor.tell(new RegisterMediatorWithCore(), ActorRef.noSender());
         }
     }
 
-    @Override
     public void stop() {
-        super.stop();
+        httpServer.shutdownNow();
 
         if (isDefaultActorSystem) {
             system.shutdown();

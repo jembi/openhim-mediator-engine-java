@@ -12,7 +12,8 @@ import akka.actor.*;
 import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import fi.iki.elonen.NanoHTTPD;
+import org.apache.commons.io.IOUtils;
+import org.glassfish.grizzly.http.server.Response;
 import org.openhim.mediator.engine.connectors.CoreAPIConnector;
 import org.openhim.mediator.engine.connectors.HTTPConnector;
 import org.openhim.mediator.engine.connectors.MLLPConnector;
@@ -20,7 +21,15 @@ import org.openhim.mediator.engine.connectors.UDPFireForgetConnector;
 import org.openhim.mediator.engine.messages.*;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
+import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The root actor for the mediator.
@@ -66,32 +75,97 @@ public class MediatorRootActor extends UntypedActor {
         getContext().actorOf(Props.create(UDPFireForgetConnector.class), "udp-fire-forget-connector");
     }
 
-    private void containRequest(final NanoHTTPD.ActorContainedRunnable msg, final ActorRef requestActor) {
+    private void containRequest(final GrizzlyHTTPRequest request, final ActorRef requestHandler) {
         ExecutionContext ec = getContext().dispatcher();
-        Future<Boolean> f = future(new Callable<Boolean>() {
-            public Boolean call() {
-                msg.run(requestActor);
-                return Boolean.TRUE;
+
+        Future<Object> f = future(new Callable<Object>() {
+            public Object call() throws IOException {
+                MediatorHTTPRequest mediatorHTTPRequest = buildMediatorHTTPRequestFromGrizzlyRequest(requestHandler, request);
+                Inbox inbox = Inbox.create(getContext().system());
+                inbox.send(requestHandler, mediatorHTTPRequest);
+                return inbox.receive(getRootTimeout());
             }
         }, ec);
-        f.onComplete(new OnComplete<Boolean>() {
+
+        f.onComplete(new OnComplete<Object>() {
             @Override
-            public void onComplete(Throwable throwable, Boolean result) throws Throwable {
-                if (throwable!=null) {
-                    log.error(throwable, "Request containment exception");
-                }
-                if (result==null || !result) {
-                    log.warning("Request containment returned non-true result");
+            public void onComplete(Throwable throwable, Object result) throws Throwable {
+                try {
+                    if (throwable != null) {
+                        log.error(throwable, "Request containment exception");
+                        handleResponse(request.getResponseHandle(), 500, "text/plain", throwable.getMessage());
+                    } else if (result == null || !(result instanceof MediatorHTTPResponse)) {
+                        String err = "Request handler responded with unexpected result: " + result;
+                        log.warning(err);
+                        handleResponse(request.getResponseHandle(), 500, "text/plain", err);
+                    } else {
+                        MediatorHTTPResponse mediatorHTTPResponse = (MediatorHTTPResponse) result;
+                        handleResponse(request.getResponseHandle(), mediatorHTTPResponse);
+                    }
+                } finally {
+                    //trigger response to client
+                    request.getResponseHandle().resume();
                 }
             }
         }, ec);
     }
 
+
+    private MediatorHTTPRequest buildMediatorHTTPRequestFromGrizzlyRequest(ActorRef requestHandler, GrizzlyHTTPRequest request) throws IOException {
+        String body = IOUtils.toString(request.getRequest().getNIOReader());
+
+        Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (String hdr : request.getRequest().getHeaderNames()) {
+            headers.put(hdr, request.getRequest().getHeader(hdr));
+        }
+
+        Map<String, String> params = new HashMap<>();
+        for (String param : request.getRequest().getParameterNames()) {
+            params.put(param, request.getRequest().getParameter(param));
+        }
+
+        return new MediatorHTTPRequest(
+                requestHandler,
+                requestHandler,
+                null,
+                request.getRequest().getMethod().toString(),
+                request.getRequest().getScheme(),
+                request.getRequest().getLocalAddr(),
+                request.getRequest().getLocalPort(),
+                request.getRequest().getRequestURI(),
+                body,
+                headers,
+                params
+        );
+    }
+
+    private void handleResponse(Response grizzlyResponseHandle, MediatorHTTPResponse response) throws IOException {
+        handleResponse(grizzlyResponseHandle, response.getStatusCode(), response.getHeaders().get("Content-Type"), response.getBody());
+    }
+
+    private void handleResponse(Response grizzlyResponseHandle, Integer status, String contentType, String body) throws IOException {
+        grizzlyResponseHandle.setStatus(status);
+        if (contentType!=null && body!=null) {
+            grizzlyResponseHandle.setContentType(contentType);
+            grizzlyResponseHandle.setContentLength(body.length());
+            grizzlyResponseHandle.setCharacterEncoding("UTF-8");
+            grizzlyResponseHandle.getWriter().write(body);
+        }
+    }
+
+    private FiniteDuration getRootTimeout() {
+        if (config.getRootTimeout()!=null) {
+            return Duration.create(config.getRootTimeout(), TimeUnit.MILLISECONDS);
+        }
+        return Duration.create(1, TimeUnit.MINUTES);
+    }
+
+
     @Override
     public void onReceive(Object msg) throws Exception {
-        if (msg instanceof NanoHTTPD.ActorContainedRunnable) {
+        if (msg instanceof GrizzlyHTTPRequest) {
             ActorRef requestHandler = getContext().actorOf(Props.create(MediatorRequestHandler.class, config));
-            containRequest((NanoHTTPD.ActorContainedRunnable) msg, requestHandler);
+            containRequest((GrizzlyHTTPRequest) msg, requestHandler);
         } else if (config.getRegistrationConfig()!=null && msg instanceof RegisterMediatorWithCore) {
             log.info("Registering mediator with core...");
             ActorSelection coreConnector = getContext().actorSelection(config.userPathFor("core-api-connector"));

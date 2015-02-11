@@ -9,13 +9,12 @@ package org.openhim.mediator.engine;
 import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import fi.iki.elonen.NanoHTTPD;
 import org.apache.http.HttpStatus;
 import org.openhim.mediator.engine.messages.*;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * <p>The request handler actor launched whenever a request is received.
@@ -63,20 +62,8 @@ public class MediatorRequestHandler extends UntypedActor {
     }
 
 
-    private void loadRequestBody(NanoHTTPD.IHTTPSession session) {
-        if ("POST".equals(session.getMethod().toString()) || "PUT".equals(session.getMethod().toString())) {
-            try {
-                Map<String, String> files = new HashMap<String, String>();
-                session.parseBody(files);
-            } catch (NanoHTTPD.ResponseException | IOException e) {
-                exceptError(e);
-            }
-        }
-    }
 
-    private void routeToActor(String route, Class<? extends Actor> clazz, NanoHTTPD.IHTTPSession session) {
-        loadRequestBody(session);
-
+    private void routeToActor(Class<? extends Actor> clazz, MediatorHTTPRequest request) {
         ActorRef actor = null;
         try {
             //can we pass the mediator config through?
@@ -88,19 +75,19 @@ public class MediatorRequestHandler extends UntypedActor {
             actor = getContext().actorOf(Props.create(clazz));
         }
 
-        actor.tell(new NanoIHTTPWrapper(getSelf(), getSelf(), route, session), getSelf());
+        actor.tell(request, getSelf());
     }
 
-    private void routeRequest(NanoHTTPD.IHTTPSession session) {
-        log.info("Received request: " + session.getMethod() + " " + session.getUri());
+    private void routeRequest(MediatorHTTPRequest request) {
+        log.info("Received request: " + request.getMethod() + " " + request.getPath());
 
-        Class<? extends Actor> routeTo = config.getRoutingTable().getActorClassForPath(session.getUri());
+        Class<? extends Actor> routeTo = config.getRoutingTable().getActorClassForPath(request.getPath());
         if (routeTo!=null) {
-            routeToActor(session.getUri(), routeTo, session);
+            routeToActor(routeTo, request);
         } else {
             CoreResponse.Response resp = new CoreResponse.Response();
             resp.setStatus(HttpStatus.SC_NOT_FOUND);
-            resp.setBody(session.getUri() + " not found");
+            resp.setBody(request.getPath() + " not found");
             resp.putHeader("Content-Type", "text/plain");
             response.setResponse(resp);
             respondAndEnd(HttpStatus.SC_NOT_FOUND);
@@ -109,7 +96,7 @@ public class MediatorRequestHandler extends UntypedActor {
 
     private void enableAsyncProcessing() {
         if (coreTransactionID==null || coreTransactionID.isEmpty()) {
-            exceptError(new RuntimeException("Cannot enable asyncronous processing if X-OpenHIM-TransactionID is unknown"));
+            exceptError(new RuntimeException("Cannot enable asynchronous processing if X-OpenHIM-TransactionID is unknown"));
             return;
         }
 
@@ -213,8 +200,10 @@ public class MediatorRequestHandler extends UntypedActor {
                 response.setStatus(response.getDescriptiveStatus());
             }
 
-            NanoHTTPD.Response.IStatus nanoStatus = getIntAsNanoHTTPDStatus(status);
-            NanoHTTPD.Response serverResponse = new NanoHTTPD.Response(nanoStatus, OPENHIM_MIME_TYPE, response.toJSON());
+            Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+            headers.put("Content-Type", OPENHIM_MIME_TYPE);
+
+            MediatorHTTPResponse serverResponse = new MediatorHTTPResponse(null, response.toJSON(), status, headers);
             requestCaller.tell(serverResponse, getSelf());
             requestCaller = null;
         } else {
@@ -222,23 +211,6 @@ public class MediatorRequestHandler extends UntypedActor {
         }
     }
 
-    private NanoHTTPD.Response.IStatus getIntAsNanoHTTPDStatus(final Integer httpStatus) {
-        if (httpStatus==null) {
-            //200 by default
-            return NanoHTTPD.Response.Status.OK;
-        }
-        return new NanoHTTPD.Response.IStatus() {
-            @Override
-            public int getRequestStatus() {
-                return httpStatus;
-            }
-
-            @Override
-            public String getDescription() {
-                return Integer.toString(getRequestStatus());
-            }
-        };
-    }
 
     /**
      * To be called when the request handler is all done
@@ -249,10 +221,10 @@ public class MediatorRequestHandler extends UntypedActor {
 
     @Override
     public void onReceive(Object msg) throws Exception {
-        if (msg instanceof NanoHTTPD.IHTTPSession) {
+        if (msg instanceof MediatorHTTPRequest) {
             requestCaller = getSender();
-            coreTransactionID = ((NanoHTTPD.IHTTPSession) msg).getHeaders().get("X-OpenHIM-TransactionID");
-            routeRequest((NanoHTTPD.IHTTPSession) msg);
+            coreTransactionID = ((MediatorHTTPRequest) msg).getHeaders().get("X-OpenHIM-TransactionID");
+            routeRequest((MediatorHTTPRequest) msg);
         } else if (msg instanceof AcceptedAsyncRequest) {
             enableAsyncProcessing();
         } else if (msg instanceof FinishRequest) {

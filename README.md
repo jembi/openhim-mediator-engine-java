@@ -230,5 +230,3 @@ Although deciding on when to instantiate actors ultimately depends on your own i
 
 # License
 This software is licensed under the Mozilla Public License Version 2.0.
-
-This software makes use of [NanoHTTPD](http://nanohttpd.com/). For license details see [here](https://github.com/NanoHttpd/nanohttpd/blob/ab6feae737b3038532d057e87fd83c58bad3b3cc/LICENSE.md).
