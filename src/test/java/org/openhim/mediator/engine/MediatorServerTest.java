@@ -124,12 +124,16 @@ public class MediatorServerTest {
 
     private static class POSTBigMediatorActor extends UntypedActor {
         public static String TEST_MESSAGE;
+        public static int ROGUE_B_POS = 1024*1024*7 + 1234;
 
         static {
             StringBuilder msg = new StringBuilder();
             for (int i=0; i<10*1024*1024; i++) {
                 msg.append('a');
             }
+            //set a rogue 'b' for validation
+            msg.setCharAt(ROGUE_B_POS, 'b');
+
             TEST_MESSAGE = msg.toString();
         }
 
@@ -138,6 +142,7 @@ public class MediatorServerTest {
             if (msg instanceof MediatorHTTPRequest) {
                 assertEquals(TEST_MESSAGE.length(), ((MediatorHTTPRequest) msg).getBody().length());
                 assertEquals(TEST_MESSAGE, ((MediatorHTTPRequest) msg).getBody());
+                assertEquals('b', ((MediatorHTTPRequest) msg).getBody().charAt(ROGUE_B_POS));
 
                 FinishRequest fr = new FinishRequest(null, "text/plain", 201);
                 ((MediatorHTTPRequest) msg).getRequestHandler().tell(fr, getSelf());
