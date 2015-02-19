@@ -247,7 +247,7 @@ public class CoreResponse implements Serializable {
     }
 
     public String toJSON() {
-        return new GsonBuilder().create().toJson(this);
+        return new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").create().toJson(this);
     }
 
     @Override
