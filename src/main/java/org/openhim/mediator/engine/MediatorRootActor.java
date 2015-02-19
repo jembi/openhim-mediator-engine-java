@@ -6,29 +6,26 @@
 
 package org.openhim.mediator.engine;
 
-import static akka.dispatch.Futures.future;
-
 import akka.actor.*;
 import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.apache.commons.io.IOUtils;
-import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ReadHandler;
-import org.glassfish.grizzly.http.io.NIOInputStream;
 import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.http.server.Response;
 import org.openhim.mediator.engine.connectors.CoreAPIConnector;
 import org.openhim.mediator.engine.connectors.HTTPConnector;
 import org.openhim.mediator.engine.connectors.MLLPConnector;
 import org.openhim.mediator.engine.connectors.UDPFireForgetConnector;
-import org.openhim.mediator.engine.messages.*;
+import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
+import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
+import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
-
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -36,6 +33,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+
+import static akka.dispatch.Futures.future;
 
 /**
  * The root actor for the mediator.
@@ -129,7 +128,6 @@ public class MediatorRootActor extends UntypedActor {
             params.put(param, request.getRequest().getParameter(param));
         }
 
-        //handler for reading data
         in.notifyAvailable(new ReadHandler() {
             final StringWriter bodyBuffer = new StringWriter();
             char[] readBuffer = new char[1024];
@@ -152,10 +150,10 @@ public class MediatorRootActor extends UntypedActor {
             @Override
             public void onError(Throwable throwable) {
                 try {
-                    log.error(throwable, "Request containment exception");
+                    log.error(throwable, "Error during reading of request body");
                     handleResponse(request.getResponseHandle(), 500, "text/plain", throwable.getMessage());
                 } catch (IOException ex) {
-                    log.error(ex, "Exception during onError");
+                    log.error(ex, "Error during reading of request body");
                 } finally {
                     request.getResponseHandle().resume();
                 }
@@ -163,27 +161,32 @@ public class MediatorRootActor extends UntypedActor {
 
             @Override
             public void onAllDataRead() throws Exception {
-                read();
-
-                MediatorHTTPRequest mediatorHTTPRequest = new MediatorHTTPRequest(
-                        requestHandler,
-                        requestHandler,
-                        null,
-                        request.getRequest().getMethod().toString(),
-                        request.getRequest().getScheme(),
-                        request.getRequest().getLocalAddr(),
-                        request.getRequest().getLocalPort(),
-                        request.getRequest().getRequestURI(),
-                        bodyBuffer.toString(),
-                        headers,
-                        params
-                );
-
-                handlerInbox.send(requestHandler, mediatorHTTPRequest);
-
-                IOUtils.closeQuietly(in);
+                try {
+                    read();
+                    MediatorHTTPRequest mediatorHTTPRequest = buildMediatorHTTPRequest(requestHandler, request, bodyBuffer.toString(), headers, params);
+                    handlerInbox.send(requestHandler, mediatorHTTPRequest);
+                } finally {
+                    IOUtils.closeQuietly(in);
+                }
             }
         });
+    }
+
+    private MediatorHTTPRequest buildMediatorHTTPRequest(ActorRef requestHandler, GrizzlyHTTPRequest request,
+                                                         String body, Map<String, String> headers, Map<String, String> params) {
+        return new MediatorHTTPRequest(
+                requestHandler,
+                requestHandler,
+                null,
+                request.getRequest().getMethod().toString(),
+                request.getRequest().getScheme(),
+                request.getRequest().getLocalAddr(),
+                request.getRequest().getLocalPort(),
+                request.getRequest().getRequestURI(),
+                body,
+                headers,
+                params
+        );
     }
 
     private void handleResponse(Response grizzlyResponseHandle, MediatorHTTPResponse response) throws IOException {
