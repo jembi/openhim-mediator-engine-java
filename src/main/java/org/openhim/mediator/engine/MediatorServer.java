@@ -47,8 +47,6 @@ public class MediatorServer {
 
     private void configureHttpServer() {
         NetworkListener listener = new NetworkListener(config.getName(), config.getServerHost(), config.getServerPort());
-        //Disabled grizzly's thread pooling, we will handle our own threading (Akka)
-        listener.getTransport().setWorkerThreadPoolConfig(null);
         httpServer.addListener(listener);
 
         httpServer.getServerConfiguration().addHttpHandler(new HttpHandler() {
