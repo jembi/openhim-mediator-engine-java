@@ -13,6 +13,10 @@ import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.apache.commons.io.IOUtils;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ReadHandler;
+import org.glassfish.grizzly.http.io.NIOInputStream;
+import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.http.server.Response;
 import org.openhim.mediator.engine.connectors.CoreAPIConnector;
 import org.openhim.mediator.engine.connectors.HTTPConnector;
@@ -24,7 +28,9 @@ import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -80,9 +86,8 @@ public class MediatorRootActor extends UntypedActor {
 
         Future<Object> f = future(new Callable<Object>() {
             public Object call() throws IOException {
-                MediatorHTTPRequest mediatorHTTPRequest = buildMediatorHTTPRequestFromGrizzlyRequest(requestHandler, request);
                 Inbox inbox = Inbox.create(getContext().system());
-                inbox.send(requestHandler, mediatorHTTPRequest);
+                processGrizzlyRequest(inbox, requestHandler, request);
                 return inbox.receive(getRootTimeout());
             }
         }, ec);
@@ -111,32 +116,74 @@ public class MediatorRootActor extends UntypedActor {
     }
 
 
-    private MediatorHTTPRequest buildMediatorHTTPRequestFromGrizzlyRequest(ActorRef requestHandler, GrizzlyHTTPRequest request) throws IOException {
-        String body = IOUtils.toString(request.getRequest().getNIOReader());
+    private void processGrizzlyRequest(final Inbox handlerInbox, final ActorRef requestHandler, final GrizzlyHTTPRequest request) throws IOException {
+        final NIOReader in = request.getRequest().getNIOReader();
 
-        Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        final Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (String hdr : request.getRequest().getHeaderNames()) {
             headers.put(hdr, request.getRequest().getHeader(hdr));
         }
 
-        Map<String, String> params = new HashMap<>();
+        final Map<String, String> params = new HashMap<>();
         for (String param : request.getRequest().getParameterNames()) {
             params.put(param, request.getRequest().getParameter(param));
         }
 
-        return new MediatorHTTPRequest(
-                requestHandler,
-                requestHandler,
-                null,
-                request.getRequest().getMethod().toString(),
-                request.getRequest().getScheme(),
-                request.getRequest().getLocalAddr(),
-                request.getRequest().getLocalPort(),
-                request.getRequest().getRequestURI(),
-                body,
-                headers,
-                params
-        );
+        //handler for reading data
+        in.notifyAvailable(new ReadHandler() {
+            final StringWriter bodyBuffer = new StringWriter();
+            char[] readBuffer = new char[1024];
+
+            private void read() throws IOException {
+                while (in.isReady()) {
+                    int len = in.read(readBuffer);
+                    if (len > 0) {
+                        bodyBuffer.write(readBuffer, 0, len);
+                    }
+                }
+            }
+
+            @Override
+            public void onDataAvailable() throws Exception {
+                read();
+                in.notifyAvailable(this);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                try {
+                    log.error(throwable, "Request containment exception");
+                    handleResponse(request.getResponseHandle(), 500, "text/plain", throwable.getMessage());
+                } catch (IOException ex) {
+                    log.error(ex, "Exception during onError");
+                } finally {
+                    request.getResponseHandle().resume();
+                }
+            }
+
+            @Override
+            public void onAllDataRead() throws Exception {
+                read();
+
+                MediatorHTTPRequest mediatorHTTPRequest = new MediatorHTTPRequest(
+                        requestHandler,
+                        requestHandler,
+                        null,
+                        request.getRequest().getMethod().toString(),
+                        request.getRequest().getScheme(),
+                        request.getRequest().getLocalAddr(),
+                        request.getRequest().getLocalPort(),
+                        request.getRequest().getRequestURI(),
+                        bodyBuffer.toString(),
+                        headers,
+                        params
+                );
+
+                handlerInbox.send(requestHandler, mediatorHTTPRequest);
+
+                IOUtils.closeQuietly(in);
+            }
+        });
     }
 
     private void handleResponse(Response grizzlyResponseHandle, MediatorHTTPResponse response) throws IOException {
