@@ -197,7 +197,7 @@ public class MediatorRootActor extends UntypedActor {
         grizzlyResponseHandle.setStatus(status);
         if (contentType!=null && body!=null) {
             grizzlyResponseHandle.setContentType(contentType);
-            grizzlyResponseHandle.setContentLength(body.length());
+            grizzlyResponseHandle.setContentLength(body.getBytes().length);
             grizzlyResponseHandle.setCharacterEncoding("UTF-8");
             grizzlyResponseHandle.getWriter().write(body);
         }
