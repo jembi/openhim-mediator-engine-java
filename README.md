@@ -124,9 +124,7 @@ public class MyMediatorMain {
         server.start();
 
         log.info("Mediator listening on 0.0.0.0:8500");
-        while (true) {
-            System.in.read();
-        }
+        Thread.currentThread().join();
     }
 }
 ```
