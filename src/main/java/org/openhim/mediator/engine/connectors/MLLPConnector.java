@@ -69,6 +69,8 @@ public class MLLPConnector extends UntypedActor {
 
         CoreResponse.Request orchReq = new CoreResponse.Request();
         orchReq.setBody(wrapMLLP(req.getBody()));
+        orchReq.setHost(req.getHost());
+        orchReq.setPort(Integer.toString(req.getPort()));
         orch.setRequest(orchReq);
 
         CoreResponse.Response orchResp = new CoreResponse.Response();
