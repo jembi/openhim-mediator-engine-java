@@ -194,6 +194,8 @@ public class HTTPConnector extends UntypedActor {
 
         CoreResponse.Request orchReq = new CoreResponse.Request();
         orchReq.setBody(req.getBody());
+        orchReq.setHost(req.getHost());
+        orchReq.setPort(Integer.toString(req.getPort()));
         orchReq.setPath(req.getPath());
         orchReq.setMethod(req.getMethod());
         orchReq.setHeaders(req.getHeaders());

@@ -23,17 +23,35 @@ import java.util.Map;
  * The OpenHIM Core response message
  */
 public class CoreResponse implements Serializable {
-    private static final long serialVersionUID = 1699473476486043930L;
+    private static final long serialVersionUID = 792029209702844889L;
 
     public static class Request implements Serializable {
-        private static final long serialVersionUID = 5650843911445158828L;
+        private static final long serialVersionUID = 8237061791963580185L;
 
+        private String host;
+        private String port;
         private String path;
         private Map<String, String> headers = new HashMap<String, String>();
         private String queryString;
         private String body;
         private String method;
         private Date timestamp = new Date();
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public String getPort() {
+            return port;
+        }
+
+        public void setPort(String port) {
+            this.port = port;
+        }
 
         public String getPath() {
             return path;
