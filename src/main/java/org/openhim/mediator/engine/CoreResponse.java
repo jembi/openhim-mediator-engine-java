@@ -12,9 +12,6 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.Serializable;
 import java.lang.reflect.Type;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
