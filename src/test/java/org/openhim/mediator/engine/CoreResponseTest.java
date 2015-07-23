@@ -33,6 +33,8 @@ public class CoreResponseTest {
 
         assertEquals(2, response.getOrchestrations().size());
         assertEquals("orch1", response.getOrchestrations().get(0).getName());
+        assertEquals("someserver", response.getOrchestrations().get(0).getRequest().getHost());
+        assertEquals("8080", response.getOrchestrations().get(0).getRequest().getPort());
         assertEquals("/orch1", response.getOrchestrations().get(0).getRequest().getPath());
         assertEquals("orchestration 1", response.getOrchestrations().get(0).getRequest().getBody());
         assertEquals("POST", response.getOrchestrations().get(0).getRequest().getMethod());
@@ -43,6 +45,8 @@ public class CoreResponseTest {
         assertEquals("2015-01-15 14:51", format.format(response.getOrchestrations().get(0).getResponse().getTimestamp()));
 
         assertEquals("orch2", response.getOrchestrations().get(1).getName());
+        assertNull(response.getOrchestrations().get(1).getRequest().getHost());
+        assertNull(response.getOrchestrations().get(1).getRequest().getPort());
         assertEquals("/orch2", response.getOrchestrations().get(1).getRequest().getPath());
         assertNull(response.getOrchestrations().get(1).getRequest().getBody());
         assertEquals("GET", response.getOrchestrations().get(1).getRequest().getMethod());
