@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 
 import static org.junit.Assert.*;
 
@@ -19,6 +20,7 @@ public class CoreResponseTest {
     @Test
     public void testParse() throws Exception {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        format.setTimeZone(TimeZone.getTimeZone("GMT+2"));
         InputStream in = CoreResponseTest.class.getClassLoader().getResourceAsStream("core-response.json");
         String json = IOUtils.toString(in);
 
@@ -64,6 +66,7 @@ public class CoreResponseTest {
     @Test
     public void testDateformats() throws Exception {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        format.setTimeZone(TimeZone.getTimeZone("GMT+2"));
         InputStream in = CoreResponseTest.class.getClassLoader().getResourceAsStream("core-response-multiple-dates.json");
         String json = IOUtils.toString(in);
 
