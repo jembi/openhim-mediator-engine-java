@@ -6,13 +6,15 @@
 
 package org.openhim.mediator.engine;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParseException;
+import com.google.gson.*;
 import com.google.gson.annotations.SerializedName;
+import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.Serializable;
+import java.lang.reflect.Type;
+import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -276,8 +278,30 @@ public class CoreResponse implements Serializable {
 
     public static CoreResponse parse(String content) throws ParseException {
         try {
-            Gson gson = new GsonBuilder().create();
+            //get gson builder and setup with a custom date parser
+            Gson gson = new GsonBuilder().registerTypeAdapter(Date.class, new JsonDeserializer<Date>() {
+                @Override
+                public Date deserialize(final JsonElement json, final Type typeOfT, final JsonDeserializationContext context) throws JsonParseException {
+                    //try parse as millis
+                    try {
+                        long value = json.getAsLong();
+                        return new Date(value);
+                    } catch (NumberFormatException ex) {
+                        //not a long
+                    }
+
+                    //try parse as ISO date
+                    try {
+                        String value = json.getAsString();
+                        return ISODateTimeFormat.dateTime().parseDateTime(value).toDate();
+                    } catch (IllegalArgumentException ex) {
+                        throw new JsonParseException(ex);
+                    }
+                }
+            }).create();
+
             return gson.fromJson(content, CoreResponse.class);
+
         } catch (JsonParseException ex) {
             throw new ParseException(ex);
         }

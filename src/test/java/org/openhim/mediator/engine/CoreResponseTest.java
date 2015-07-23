@@ -62,6 +62,18 @@ public class CoreResponseTest {
     }
 
     @Test
+    public void testDateformats() throws Exception {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        InputStream in = CoreResponseTest.class.getClassLoader().getResourceAsStream("core-response-multiple-dates.json");
+        String json = IOUtils.toString(in);
+
+        CoreResponse response = CoreResponse.parse(json);
+        assertEquals("Should parse ISO8601 in UTC", "2015-01-15 14:51", format.format(response.getResponse().getTimestamp()));
+        assertEquals("Should parse ISO8601 in GMT+2", "2015-01-15 14:51", format.format(response.getOrchestrations().get(0).getRequest().getTimestamp()));
+        assertEquals("Should parse timestamp in milliseconds", "2015-01-15 14:51", format.format(response.getOrchestrations().get(0).getResponse().getTimestamp()));
+    }
+
+    @Test
     public void testParse_BadContent() throws Exception {
         String json = "bad content!";
 
