@@ -11,6 +11,7 @@ import org.junit.Test;
 
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 
 import static org.junit.Assert.*;
 
@@ -19,6 +20,7 @@ public class CoreResponseTest {
     @Test
     public void testParse() throws Exception {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        format.setTimeZone(TimeZone.getTimeZone("GMT+2"));
         InputStream in = CoreResponseTest.class.getClassLoader().getResourceAsStream("core-response.json");
         String json = IOUtils.toString(in);
 
@@ -59,6 +61,19 @@ public class CoreResponseTest {
         assertEquals(2, response.getProperties().size());
         assertEquals("val1", response.getProperties().get("pro1"));
         assertEquals("val2", response.getProperties().get("pro2"));
+    }
+
+    @Test
+    public void testDateformats() throws Exception {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        format.setTimeZone(TimeZone.getTimeZone("GMT+2"));
+        InputStream in = CoreResponseTest.class.getClassLoader().getResourceAsStream("core-response-multiple-dates.json");
+        String json = IOUtils.toString(in);
+
+        CoreResponse response = CoreResponse.parse(json);
+        assertEquals("Should parse ISO8601 in UTC", "2015-01-15 14:51", format.format(response.getResponse().getTimestamp()));
+        assertEquals("Should parse ISO8601 in GMT+2", "2015-01-15 14:51", format.format(response.getOrchestrations().get(0).getRequest().getTimestamp()));
+        assertEquals("Should parse timestamp in milliseconds", "2015-01-15 14:51", format.format(response.getOrchestrations().get(0).getResponse().getTimestamp()));
     }
 
     @Test

@@ -5,7 +5,7 @@
         "status": 200,
         "headers": { "Content-Type": "text/plain" },
         "body": "a test response",
-        "timestamp": "2015-01-15T14:51:55.000+02:00"
+        "timestamp": "2015-01-15T12:51:55.000+00:00"
     },
     "orchestrations": [
         {
@@ -22,7 +22,7 @@
                 "status": 201,
                 "headers": { "Content-Type": "text/plain" },
                 "body": "created",
-                "timestamp": "2015-01-15T14:51:55.000+02:00"
+                "timestamp": 1421326260000
             }
         },
         {
@@ -30,7 +30,7 @@
             "request": {
                 "path": "/orch2",
                 "method": "GET",
-                "timestamp": "2015-01-15T14:51:55.000+02:00"
+                "timestamp": "2015-01-15T12:51:55.000+00:00"
             },
             "response": {
                 "status": 200,

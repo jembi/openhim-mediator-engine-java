@@ -239,14 +239,14 @@ public class HTTPConnector extends UntypedActor {
                         if (throwable != null) {
                             throw throwable;
                         }
-
-                        //send response
                         MediatorHTTPResponse response = buildResponse(req, result);
-                        req.getRespondTo().tell(response, getSelf());
 
                         //enrich engine response
                         CoreResponse.Orchestration orch = buildHTTPOrchestration(req, response);
                         req.getRequestHandler().tell(new AddOrchestrationToCoreResponse(orch), getSelf());
+
+                        //send response
+                        req.getRespondTo().tell(response, getSelf());
                     } catch (Exception ex) {
                         req.getRequestHandler().tell(new ExceptError(ex), getSelf());
                     } finally {
