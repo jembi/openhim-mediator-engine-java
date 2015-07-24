@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/jembi/openhim-mediator-engine-java.svg)](https://travis-ci.org/jembi/openhim-mediator-engine-java) [![OpenHIM Core](https://img.shields.io/badge/openhim--core-1.2-brightgreen.svg)](http://www.openhim.org/faqs/openhim-core-versioning-and-compatibility/)
+[![Build Status](https://travis-ci.org/jembi/openhim-mediator-engine-java.svg)](https://travis-ci.org/jembi/openhim-mediator-engine-java) [![OpenHIM Core](https://img.shields.io/badge/openhim--core-1.2%2B-brightgreen.svg)](http://www.openhim.org/faqs/openhim-core-versioning-and-compatibility/)
 
 OpenHIM Mediator Engine
 =======================
