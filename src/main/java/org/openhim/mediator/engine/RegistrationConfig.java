@@ -6,10 +6,14 @@
 
 package org.openhim.mediator.engine;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,25 +26,33 @@ import java.util.regex.Pattern;
  * See <a href="https://github.com/jembi/openhim-core-js/wiki/Creating-an-OpenHIM-mediator">the core documentation</a>
  */
 public class RegistrationConfig {
+    private class ParsedConfig {
+        String urn;
+        Map<String, Object> config;
+    }
+
     private String path = "/mediators";
     private String method = "POST";
     private String contentType = "application/json";
     private String content;
-    private String urn;
+    private ParsedConfig parsedConfig;
+
 
     /**
      * @param content The JSON registration content
      */
     public RegistrationConfig(String content) {
         this.content = content;
+        parsedConfig = new GsonBuilder().create().fromJson(content, ParsedConfig.class);
     }
 
     /**
      * @see #RegistrationConfig(String)
      */
     public RegistrationConfig(InputStream content) throws IOException {
-        this.content = IOUtils.toString(content);
+        this(IOUtils.toString(content));
     }
+
 
     public String getPath() {
         return path;
@@ -66,6 +78,7 @@ public class RegistrationConfig {
         this.contentType = contentType;
     }
 
+
     public String getContent() {
         return content;
     }
@@ -80,17 +93,11 @@ public class RegistrationConfig {
      * @see #RegistrationConfig(String)
      */
     public String getURN() throws InvalidRegistrationContentException {
-        if (urn==null) {
-            String pattern = "\"urn\"\\s*:\\s*\"(.*)\"";
-            Matcher matcher = Pattern.compile(pattern).matcher(content);
-            if (matcher.find()) {
-                urn = matcher.group(1);
-            } else {
-                throw new InvalidRegistrationContentException("Failed to parse 'urn'");
-            }
-        }
+        return parsedConfig.urn;
+    }
 
-        return urn;
+    public Map<String, Object> getDefaultConfig() {
+        return parsedConfig.config;
     }
 
     public static class InvalidRegistrationContentException extends Exception {

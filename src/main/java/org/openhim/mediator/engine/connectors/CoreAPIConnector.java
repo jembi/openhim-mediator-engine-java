@@ -13,6 +13,7 @@ import akka.event.LoggingAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.openhim.mediator.engine.MediatorConfig;
+import org.openhim.mediator.engine.RegistrationConfig;
 import org.openhim.mediator.engine.messages.*;
 
 import java.security.MessageDigest;
@@ -26,9 +27,11 @@ import java.util.UUID;
  * <br/><br/>
  * Supports the following messages:
  * <ul>
- * <li>RegisterMediatorWithCore: Register the mediator with core</li>
+ * <li>RegisterMediatorWithCore: Register the mediator with core - no response</li>
  * <li>MediatorHTTPRequest: Will add the auth headers to the request and forward it to http-connector -
  * responds with MediatorHTTPResponse</li>
+ * <li>SendHeartbeatToCore: Send a heartbeat to core and update the dynamic config map
+ * with any changes - no response</li>
  * </ul>
  */
 public class CoreAPIConnector extends UntypedActor {
@@ -78,6 +81,28 @@ public class CoreAPIConnector extends UntypedActor {
                 config.getRegistrationConfig().getContent(),
                 headers,
                 null,
+                null
+        );
+    }
+
+    private MediatorHTTPRequest buildHeartbeatRequest(SendHeartbeatToCore msg) throws RegistrationConfig.InvalidRegistrationContentException {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+
+        String path = "/mediators" + config.getRegistrationConfig().getURN() + "/heartbeat";
+        String body = "{\"uptime\":" + msg.getUptimeSeconds() + "}";
+
+        return new MediatorHTTPRequest(
+                getSelf(),
+                getSender(),
+                "heartbeat",
+                "POST",
+                config.getCoreAPIScheme(),
+                config.getCoreHost(),
+                config.getCoreAPIPort(),
+                path,
+                body,
+                headers,
                 null
         );
     }
@@ -160,23 +185,35 @@ public class CoreAPIConnector extends UntypedActor {
         if (msg instanceof RegisterMediatorWithCore) {
             log.info("Registering mediator with core...");
             authenticateMessage(buildRegistrationRequest());
+
         } else if (msg instanceof MediatorHTTPRequest) {
             authenticateMessage((MediatorHTTPRequest) msg);
+
+        } else if (msg instanceof SendHeartbeatToCore) {
+            authenticateMessage(buildHeartbeatRequest((SendHeartbeatToCore) msg));
+
         } else if (msg instanceof MediatorHTTPResponse) {
             if ("register-mediator".equals(((MediatorHTTPResponse) msg).getOriginalRequest().getOrchestration())) {
                 log.info("Sent mediator registration message to core");
                 log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getBody()));
+
+            } else if ("heartbeat".equals(((MediatorHTTPResponse) msg).getOriginalRequest().getOrchestration())) {
+                //TODO
+
             } else if ("get-auth-details".equals(((MediatorHTTPResponse) msg).getOriginalRequest().getOrchestration())) {
                 MediatorHTTPRequest originalRequest = copyOriginalRequestWithAuthenticationHeaders((MediatorHTTPResponse) msg);
                 if (originalRequest!=null) {
                     sendToHTTPConnector(originalRequest);
                 }
+
             } else {
                 //we only expect http responses for the authentication message, but forward to original respondTo just in case
                 ((MediatorHTTPResponse) msg).getOriginalRequest().getRespondTo().tell(msg, getSelf());
             }
+
         } else if (msg instanceof ExceptError) {
-            log.error(((ExceptError) msg).getError(), "Mediator Registration Error");
+            log.error(((ExceptError) msg).getError(), "http-connector: An error occurred while communicating with core");
+
         } else if (msg instanceof AddOrchestrationToCoreResponse) {
             //do nothing
         }

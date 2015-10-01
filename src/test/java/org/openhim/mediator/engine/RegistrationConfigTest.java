@@ -6,6 +6,7 @@
 
 package org.openhim.mediator.engine;
 
+import com.google.gson.JsonParseException;
 import org.junit.Test;
 
 import java.io.InputStream;
@@ -25,11 +26,34 @@ public class RegistrationConfigTest {
     public void testGetURN_invalidJSON() throws Exception {
         String testJson = "a bad message!";
         try {
-            RegistrationConfig config = new RegistrationConfig(testJson);
-            config.getURN();
-            fail("Failed to throw InvalidRegistrationContent exception");
-        } catch (RegistrationConfig.InvalidRegistrationContentException ex) {
+            new RegistrationConfig(testJson);
+            fail("Failed to throw exception");
+        } catch (JsonParseException ex) {
             //expected
         }
+    }
+
+
+    @Test
+    public void testDefaultConfig() throws Exception {
+        InputStream testJson = RegistrationConfigTest.class.getClassLoader().getResourceAsStream("test-registration-info-w-config.json");
+        RegistrationConfig config = new RegistrationConfig(testJson);
+
+        assertNotNull(config.getDefaultConfig());
+
+        assertTrue(config.getDefaultConfig().containsKey("Setting 1"));
+        assertTrue(config.getDefaultConfig().containsKey("Setting 2"));
+        assertTrue(config.getDefaultConfig().containsKey("Setting 3"));
+        assertTrue(config.getDefaultConfig().containsKey("Setting 4"));
+
+        assertTrue(config.getDefaultConfig().get("Setting 1") instanceof String);
+        assertTrue(config.getDefaultConfig().get("Setting 2") instanceof Double);
+        assertTrue(config.getDefaultConfig().get("Setting 3") instanceof Boolean);
+        assertTrue(config.getDefaultConfig().get("Setting 4") instanceof String);
+
+        assertEquals("default1", config.getDefaultConfig().get("Setting 1"));
+        assertEquals(42, ((Double)config.getDefaultConfig().get("Setting 2")).intValue());
+        assertTrue((Boolean) config.getDefaultConfig().get("Setting 3"));
+        assertEquals("b", config.getDefaultConfig().get("Setting 4"));
     }
 }

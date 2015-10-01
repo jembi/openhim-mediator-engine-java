@@ -14,8 +14,13 @@ import akka.event.LoggingAdapter;
 import org.glassfish.grizzly.http.server.*;
 import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
 import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
+import org.openhim.mediator.engine.messages.SendHeartbeatToCore;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The mediator engine HTTP server.
@@ -28,6 +33,10 @@ public class MediatorServer {
     private final ActorRef rootActor;
     private final MediatorConfig config;
     private final HttpServer httpServer;
+
+    private ScheduledExecutorService heartbeatService;
+    private static final int initialHeartbeatDelaySeconds = 5;
+    private long serverStartTime;
 
 
     public MediatorServer(ActorSystem system, MediatorConfig config) {
@@ -58,20 +67,47 @@ public class MediatorServer {
         });
     }
 
+    private void startHeartbeatService() {
+        if (heartbeatService==null) {
+            heartbeatService = Executors.newSingleThreadScheduledExecutor();
+        }
+
+        heartbeatService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                long uptime = (System.currentTimeMillis()-serverStartTime)/1000;
+                rootActor.tell(new SendHeartbeatToCore(uptime), ActorRef.noSender());
+            }
+        }, initialHeartbeatDelaySeconds, config.getHeartbeatPeriodSeconds(), TimeUnit.SECONDS);
+    }
+
+    private void stopHeartbeatService() {
+        if (heartbeatService!=null) {
+            heartbeatService.shutdownNow();
+        }
+    }
 
     public void start() throws IOException {
         start(true);
     }
 
     public void start(boolean registerMediatorWithCore) throws IOException {
+        serverStartTime = System.currentTimeMillis();
         httpServer.start();
 
         if (registerMediatorWithCore) {
             rootActor.tell(new RegisterMediatorWithCore(), ActorRef.noSender());
         }
+
+        if (config.getHeartsbeatEnabled()) {
+            startHeartbeatService();
+        }
     }
 
     public void stop() {
+        if (config.getHeartsbeatEnabled()) {
+            stopHeartbeatService();
+        }
         httpServer.shutdownNow();
 
         if (isDefaultActorSystem) {

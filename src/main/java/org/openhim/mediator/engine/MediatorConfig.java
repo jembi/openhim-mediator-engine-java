@@ -10,6 +10,8 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -19,18 +21,26 @@ import java.util.Properties;
  */
 public class MediatorConfig {
     private String name;
+
     private String serverHost;
     private Integer serverPort;
     private Integer rootTimeout;
+
     private String coreHost;
     private Integer coreAPIPort = 8080;
     private String coreAPIScheme = "https";
     private String coreAPIUsername;
     private String coreAPIPassword;
+
     private RoutingTable routingTable;
     private StartupActorsConfig startupActors;
     private RegistrationConfig registrationConfig;
+
+    private boolean heartbeatsEnabled = false;
+    private int heartbeatPeriodSeconds = 10;
+
     private Properties properties;
+    private Map<String, Object> dynamicConfig = new HashMap<>();
 
 
     public MediatorConfig() {
@@ -223,10 +233,54 @@ public class MediatorConfig {
     }
 
     /**
+     * The mediator registration config. If it contains default config and definitions,
+     * then the dynamic config will be initialized with those values.
+     *
      * @see org.openhim.mediator.engine.RegistrationConfig
+     * @see #getDynamicConfig()
      */
     public void setRegistrationConfig(RegistrationConfig registrationConfig) {
         this.registrationConfig = registrationConfig;
+
+        if (registrationConfig.getDefaultConfig()!=null) {
+            for (String key : registrationConfig.getDefaultConfig().keySet()) {
+                dynamicConfig.put(key, registrationConfig.getDefaultConfig().get(key));
+            }
+        }
+    }
+
+    /**
+     * @see #setHeartbeatsEnabled(boolean)
+     */
+    public boolean getHeartsbeatEnabled() {
+        return heartbeatsEnabled;
+    }
+
+    /**
+     * If enabled, the mediator will periodically send a heartbeat message to core.
+     * If core responds with any configuration updates, then the existing properties will be updated.
+     *
+     * By default the option is disabled.
+     *
+     * @see #setHeartbeatPeriodSeconds(int)
+     * @see #setProperties(String)
+     */
+    public void setHeartbeatsEnabled(boolean heartbeatsEnabled) {
+        this.heartbeatsEnabled = heartbeatsEnabled;
+    }
+
+    /**
+     * @see #setHeartbeatsEnabled(boolean)
+     */
+    public int getHeartbeatPeriodSeconds() {
+        return heartbeatPeriodSeconds;
+    }
+
+    /**
+     * @see #setHeartbeatsEnabled(boolean)
+     */
+    public void setHeartbeatPeriodSeconds(int heartbeatPeriodSeconds) {
+        this.heartbeatPeriodSeconds = heartbeatPeriodSeconds;
     }
 
     /**
@@ -244,7 +298,7 @@ public class MediatorConfig {
     }
 
     /**
-     * Optional mediator specific field for loading custom config from a properties file
+     * Optional mediator specific field for loading custom configuration from a properties file.
      */
     public void setProperties(Properties properties) {
         this.properties = properties;
@@ -262,5 +316,18 @@ public class MediatorConfig {
         } finally {
             IOUtils.closeQuietly(propsStream);
         }
+    }
+
+    /**
+     * Settings for the mediator. On first load, it will be initialized to an empty map.
+     *
+     * If mediator registration config is supplied, then it will be initialized with any default config values.
+     *
+     * If heartbeats are enabled, then any config changes that core provides will be updated in the config map.
+     *
+     * @see #setRegistrationConfig(RegistrationConfig)
+     */
+    public Map<String, Object> getDynamicConfig() {
+        return dynamicConfig;
     }
 }
