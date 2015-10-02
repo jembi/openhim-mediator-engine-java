@@ -14,12 +14,22 @@ package org.openhim.mediator.engine.messages;
 
 public class SendHeartbeatToCore {
     private final long uptimeSeconds;
+    private final boolean forceConfig;
+
+    public SendHeartbeatToCore(long uptimeSeconds, boolean forceConfig) {
+        this.uptimeSeconds = uptimeSeconds;
+        this.forceConfig = forceConfig;
+    }
 
     public SendHeartbeatToCore(long uptimeSeconds) {
-        this.uptimeSeconds = uptimeSeconds;
+        this(uptimeSeconds, false);
     }
 
     public long getUptimeSeconds() {
         return uptimeSeconds;
+    }
+
+    public boolean getForceConfig() {
+        return forceConfig;
     }
 }

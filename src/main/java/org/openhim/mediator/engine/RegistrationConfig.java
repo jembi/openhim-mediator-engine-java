@@ -93,6 +93,9 @@ public class RegistrationConfig {
      * @see #RegistrationConfig(String)
      */
     public String getURN() throws InvalidRegistrationContentException {
+        if (parsedConfig==null || parsedConfig.urn==null || parsedConfig.urn.trim().isEmpty()) {
+            throw new InvalidRegistrationContentException("Invalid registration config - failed to read mediator URN");
+        }
         return parsedConfig.urn;
     }
 

@@ -24,6 +24,14 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * The mediator engine HTTP server.
+ * <br/><br/>
+ * Its roles are to:
+ * <ul>
+ * <li>provide the http server for the mediator,</li>
+ * <li>launch default actor system if none are provided,</li>
+ * <li>trigger the registration of the mediator to core, and</li>
+ * <li>periodically trigger heartbeat requests to core.</li>
+ * </ul>
  */
 public class MediatorServer {
     private final LoggingAdapter log;
