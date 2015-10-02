@@ -60,6 +60,10 @@ public class CoreAPIConnector extends UntypedActor {
     private final MediatorConfig config;
     private final Map<String, MediatorHTTPRequest> activeRequests = new HashMap<>();
 
+    private static final String REGISTER_MEDIATOR = "register-mediator";
+    private static final String HEARTBEAT = "heartbeat";
+    private static final String GET_AUTH_DETAILS = "get-auth-details";
+
 
     public CoreAPIConnector(MediatorConfig config) {
         this.config = config;
@@ -73,7 +77,7 @@ public class CoreAPIConnector extends UntypedActor {
         return new MediatorHTTPRequest(
                 getSelf(),
                 getSender(),
-                "register-mediator",
+                REGISTER_MEDIATOR,
                 config.getRegistrationConfig().getMethod(),
                 config.getCoreAPIScheme(),
                 config.getCoreHost(),
@@ -101,7 +105,7 @@ public class CoreAPIConnector extends UntypedActor {
         return new MediatorHTTPRequest(
                 getSelf(),
                 getSender(),
-                "heartbeat",
+                HEARTBEAT,
                 "POST",
                 config.getCoreAPIScheme(),
                 config.getCoreHost(),
@@ -117,7 +121,7 @@ public class CoreAPIConnector extends UntypedActor {
         return new MediatorHTTPRequest(
                 getSelf(),
                 getSelf(),
-                "get-auth-details",
+                GET_AUTH_DETAILS,
                 "GET",
                 config.getCoreAPIScheme(),
                 config.getCoreHost(),
@@ -148,8 +152,16 @@ public class CoreAPIConnector extends UntypedActor {
 
     private MediatorHTTPRequest copyOriginalRequestWithAuthenticationHeaders(MediatorHTTPResponse response) {
         String correlationId = response.getOriginalRequest().getCorrelationId();
-        MediatorHTTPRequest originalRequest = activeRequests.remove(correlationId);
-        MediatorHTTPRequest request = new MediatorHTTPRequest(originalRequest);
+        MediatorHTTPRequest originalRequest = activeRequests.get(correlationId);
+        MediatorHTTPRequest request;
+
+        //if register-mediator or heartbeat, core-api-connector is the respondTo. Else forward to original caller
+        if (REGISTER_MEDIATOR.equals(originalRequest.getOrchestration()) || HEARTBEAT.equals(originalRequest.getOrchestration())) {
+            request = new MediatorHTTPRequest(getSelf(), correlationId, originalRequest);
+        } else {
+            request = new MediatorHTTPRequest(originalRequest);
+            activeRequests.remove(correlationId);
+        }
 
         try {
             if (response.getStatusCode()!=200) {
@@ -189,6 +201,8 @@ public class CoreAPIConnector extends UntypedActor {
     private void handleRegisterMediatorResponse(MediatorHTTPResponse msg) {
         log.info("Sent mediator registration message to core");
         log.info(String.format("Response: %s (%s)", msg.getStatusCode(), msg.getBody()));
+
+        activeRequests.remove(msg.getOriginalRequest().getCorrelationId());
     }
 
     private void handleAuthenticationResponse(MediatorHTTPResponse msg) {
@@ -217,17 +231,18 @@ public class CoreAPIConnector extends UntypedActor {
             resp = new SendHeartbeatToCoreResponse(false, msg.getBody(), null);
         }
 
-        msg.getOriginalRequest().getRespondTo().tell(resp, getSelf());
+        MediatorHTTPRequest originalHttp = activeRequests.remove(msg.getOriginalRequest().getCorrelationId());
+        originalHttp.getRespondTo().tell(resp, getSelf());
     }
 
     private void handleHTTPConnectorResponse(MediatorHTTPResponse msg) {
-        if ("register-mediator".equals(msg.getOriginalRequest().getOrchestration())) {
+        if (REGISTER_MEDIATOR.equals(msg.getOriginalRequest().getOrchestration())) {
             handleRegisterMediatorResponse(msg);
 
-        } else if ("get-auth-details".equals(msg.getOriginalRequest().getOrchestration())) {
+        } else if (GET_AUTH_DETAILS.equals(msg.getOriginalRequest().getOrchestration())) {
             handleAuthenticationResponse(msg);
 
-        } else if ("heartbeat".equals(msg.getOriginalRequest().getOrchestration())) {
+        } else if (HEARTBEAT.equals(msg.getOriginalRequest().getOrchestration())) {
             handleHeartbeatResponse(msg);
 
         } else {

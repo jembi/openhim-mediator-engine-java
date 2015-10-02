@@ -218,7 +218,7 @@ public class MediatorRootActor extends UntypedActor {
             }
 
         } else {
-            log.error("Heartbeat request to core failed. Raw response: " + response.getRawResponse());
+            log.error("Heartbeat request to core failed. Response: " + response.getRawResponse());
         }
     }
 
@@ -234,15 +234,12 @@ public class MediatorRootActor extends UntypedActor {
             coreConnector.tell(msg, getSelf());
 
         } else if (msg instanceof SendHeartbeatToCore) {
+            log.debug("Sending heartbeat to core...");
             ActorSelection coreConnector = getContext().actorSelection(config.userPathFor("core-api-connector"));
             coreConnector.tell(msg, getSelf());
 
         } else if (msg instanceof SendHeartbeatToCoreResponse) {
             handleHeartbeatResponse((SendHeartbeatToCoreResponse) msg);
-
-        } else if (msg instanceof MediatorHTTPResponse) {
-            log.info("Sent mediator registration message to core");
-            log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getBody()));
 
         } else {
             unhandled(msg);

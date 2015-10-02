@@ -73,6 +73,26 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
         );
     }
 
+    /**
+     * Copy constructor with a different respondTo and correlationId
+     */
+    public MediatorHTTPRequest(ActorRef respondTo, String correlationId, MediatorHTTPRequest requestToCopy) {
+        this(
+                requestToCopy.getRequestHandler(),
+                respondTo,
+                requestToCopy.getOrchestration(),
+                requestToCopy.getMethod(),
+                requestToCopy.getScheme(),
+                requestToCopy.getHost(),
+                requestToCopy.getPort(),
+                requestToCopy.getPath(),
+                requestToCopy.getBody(),
+                copyOfHeaders(requestToCopy.getHeaders()),
+                requestToCopy.getParams()!=null ? new HashMap<>(requestToCopy.getParams()) : null,
+                correlationId
+        );
+    }
+
     private static Map<String, String> copyOfHeaders(Map<String, String> headers) {
         if (headers==null) {
             return null;
