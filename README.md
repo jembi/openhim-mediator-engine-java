@@ -37,7 +37,7 @@ Note that `start()` is non-blocking.
 
 The server constructor also accepts an `ActorSystem` parameter (e.g. `new MediatorServer(myActorSytem, config)`), in the event that you want to manage this yourself. If _not_ passed, the server will create a new system. Note though that ActorSystem is a heavy object and there should ideally only be a single instance of this in your application.
 
-On startup server will register your mediator with the HIM core and you must pass the registration json info to the config (see [this page](http://openhim.readthedocs.org/en/latest/dev-guide/mediators.html) and **Configuration** section below for details).
+On startup server will register your mediator with the HIM core and you must pass the registration json info to the config (see [this page](http://openhim.readthedocs.org/en/latest/dev-guide/mediators.html) and the **Configuration** section below for details).
 
 You will need at least one actor in your project to receive requests from the engine. If you're starting a new mediator, you can simply create an actor as follows:
 ```
