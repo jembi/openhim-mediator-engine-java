@@ -18,10 +18,7 @@ import org.openhim.mediator.engine.connectors.CoreAPIConnector;
 import org.openhim.mediator.engine.connectors.HTTPConnector;
 import org.openhim.mediator.engine.connectors.MLLPConnector;
 import org.openhim.mediator.engine.connectors.UDPFireForgetConnector;
-import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
-import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
-import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
-import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
+import org.openhim.mediator.engine.messages.*;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
@@ -44,7 +41,7 @@ import static akka.dispatch.Futures.future;
  * <li>launch new request actors,</li>
  * <li>contain the request context,</li>
  * <li>launch all single instance actors on startup, and</li>
- * <li>trigger the registration of the mediator to core.</li>
+ * <li>update the dynamic config on heartbeat responses from core.</li>
  * </ul>
  */
 public class MediatorRootActor extends UntypedActor {
@@ -210,19 +207,40 @@ public class MediatorRootActor extends UntypedActor {
         return Duration.create(1, TimeUnit.MINUTES);
     }
 
+    private void handleHeartbeatResponse(SendHeartbeatToCoreResponse response) {
+        if (response.requestSucceeded()) {
+            if (response.receivedConfigUpdate()) {
+                log.info("Received config updates from core");
+
+                for (String param : response.getConfig().keySet()) {
+                    config.getDynamicConfig().put(param, response.getConfig().get(param));
+                }
+            }
+
+        } else {
+            log.error("Heartbeat request to core failed. Response: " + response.getRawResponse());
+        }
+    }
 
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof GrizzlyHTTPRequest) {
             ActorRef requestHandler = getContext().actorOf(Props.create(MediatorRequestHandler.class, config));
             containRequest((GrizzlyHTTPRequest) msg, requestHandler);
+
         } else if (config.getRegistrationConfig()!=null && msg instanceof RegisterMediatorWithCore) {
             log.info("Registering mediator with core...");
             ActorSelection coreConnector = getContext().actorSelection(config.userPathFor("core-api-connector"));
             coreConnector.tell(msg, getSelf());
-        } else if (msg instanceof MediatorHTTPResponse) {
-            log.info("Sent mediator registration message to core");
-            log.info(String.format("Response: %s (%s)", ((MediatorHTTPResponse) msg).getStatusCode(), ((MediatorHTTPResponse) msg).getBody()));
+
+        } else if (msg instanceof SendHeartbeatToCore) {
+            log.debug("Sending heartbeat to core...");
+            ActorSelection coreConnector = getContext().actorSelection(config.userPathFor("core-api-connector"));
+            coreConnector.tell(msg, getSelf());
+
+        } else if (msg instanceof SendHeartbeatToCoreResponse) {
+            handleHeartbeatResponse((SendHeartbeatToCoreResponse) msg);
+
         } else {
             unhandled(msg);
         }

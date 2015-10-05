@@ -3,7 +3,7 @@
 OpenHIM Mediator Engine
 =======================
 
-An engine for building OpenHIM mediators based on the [Akka](http://akka.io/) framework.
+An engine for building [OpenHIM](http://openhim.org) mediators based on the [Akka](http://akka.io/) framework.
 
 # Yeoman Generator
 The quickest way to get a new mediator up and running is to use the handy [Yeoman generator](https://github.com/jembi/openhim-mediator-yeoman-generators/tree/master/generator-mediator-java):
@@ -37,7 +37,7 @@ Note that `start()` is non-blocking.
 
 The server constructor also accepts an `ActorSystem` parameter (e.g. `new MediatorServer(myActorSytem, config)`), in the event that you want to manage this yourself. If _not_ passed, the server will create a new system. Note though that ActorSystem is a heavy object and there should ideally only be a single instance of this in your application.
 
-On startup server will register your mediator with the HIM core and you must pass the registration json info to the config (see [this page](https://github.com/jembi/openhim-core-js/wiki/Creating-an-OpenHIM-mediator) for details about the json format).
+On startup server will register your mediator with the HIM core and you must pass the registration json info to the config (see [this page](http://openhim.readthedocs.org/en/latest/dev-guide/mediators.html) and the **Configuration** section below for details).
 
 You will need at least one actor in your project to receive requests from the engine. If you're starting a new mediator, you can simply create an actor as follows:
 ```
@@ -173,8 +173,17 @@ try {
 
 In addition, you don't need to stress about unhandled exceptions either. Akka will automatically restart any actors that failed due to an exception. See the [Akka documentation](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html) for further details (the engine uses the default supervisor strategy, by default).
 
-# Config Handle
-For convenience, any actors that are setup in the routing table can get a handle to the mediator config if it has a constructor that takes `MediatorConfig` as a parameter. If available, the engine will pass through a reference when routing to the actor:
+# Configuration
+The mediator engine provides you with several configuration mechanisms, both for setting up the mediator within the engine and core in order to get it up and running, as well as options that you can use to setup your own custom settings:
+* **Mediator config**: As seen in the **Getting Started** section, the `MediatorConfig` class is used to setup the mediator within the context of the engine.
+* **Registration config**: On startup, the mediator must register itself with core.
+* **Properties**: The engine provides a mechanism for loading custom settings from a standard [java properties file](https://docs.oracle.com/javase/tutorial/essential/environment/properties.html). This is useful for settings that you require at mediator startup, such as the OpenHIM Core configuration
+* **Dynamic config**: Also provided is a dynamic config map that can be used for runtime settings.
+
+Each mechanism is discussed below.
+
+## Mediator Config
+An instance of `MediatorConfig` is used to setup your mediator within the context of the engine. For convenience, any actors that are setup in the routing table can get a handle to the mediator config if it has a constructor that takes `MediatorConfig` as a parameter. If available, the engine will pass through a reference when routing to the actor:
 ```
 public class MyActor extends UntypedActor {
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -195,6 +204,27 @@ public class MyActor extends UntypedActor {
     }
 }
 ```
+
+## Registration config
+Upon startup your mediator must register itself with core. The engine will handle this automatically, but you must supply the engine with a json string containing the configuration for your mediator. See [this](http://openhim.readthedocs.org/en/latest/dev-guide/mediators.html) page for details. This string can be passed to your instance of `MediatorConfig` using an instance of `RegistrationConfig`:
+```
+InputStream json = ... //or String
+RegistrationConfig regConfig = new RegistrationConfig(json);
+config.setRegistrationConfig(regConfig);
+```
+
+## Properties
+You can load a standard properties file into `MediatorConfig` using the overloaded `setProperties` method. These are then availabe via `getProperties()` and `getProperty(String)` for looking up a key/value pair. If you are using dynamic configuration (described below) then these properties can be useful for any static configuration that you may have.
+
+## Dynamic config
+In addition to properties, `MediatorConfig` also provides a String -> Object map (on `getDynamicConfig()`) that can be used for runtime settings. When `MediatorConfig` is initialized, this map will be empty and you can then use it to load any settings.
+
+***[Only supported with OpenHIM Core version 1.4 or greater]*** If supported by the version of core you are using, and if heartbeats are enabled, then the engine will also automatically update the dynamic config map with any updates that are made core-side. This option can be used in order to dynamically change the mediator's config using the OpenHIM Console. To make use of this feature, ensure that heartbeats are enabled on the mediator (see **Heartbeats** section) and that you supply the `configDefs` and (optional) default `config` fields in your [registration config json](https://github.com/jembi/openhim-core-js/blob/249d9882f681a3f944cb8cc5e1735d703365aa60/src/model/mediators.coffee#L24-L25). In addition, if you have specified `config` values in your registration config, then those will be loaded into the map on startup (and overwritten with any changes from core if there are any).
+
+# Heartbeats
+***[Only supported with OpenHIM Core version 1.4 or greater]***
+
+Mediator heartbeats can be enabled with the `setHeartbeatsEnabled` option in `MediatorConfig`. If enabled, the engine will periodically send an "aliveness" request to core. If there are any config changes (e.g. a user changed a setting for the mediator in the console), the dynamic config (`MediatorConfig#getDynamicConfig()`) will be updated with the changes.
 
 # Actor Model
 The engine is based on Akka and is designed to be an easy way to bootstrap an actor system for your mediator. However you are under no obligation to follow the actor model in your project! In this case, simply bootstrap your project as explained in the **Getting Started** section with a single actor for receiving requests and link to your own non-actor classes from there.

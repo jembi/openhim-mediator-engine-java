@@ -45,7 +45,7 @@ public abstract class MockHTTPConnector extends UntypedActor {
             MediatorHTTPResponse rMsg = new MediatorHTTPResponse(
                     (MediatorHTTPRequest)msg, getResponse(), getStatus(), getHeaders()
             );
-            getSender().tell(rMsg, getSelf());
+            ((MediatorHTTPRequest) msg).getRespondTo().tell(rMsg, getSelf());
         } else {
             unhandled(msg);
         }

@@ -1,0 +1,36 @@
+{
+  "urn": "urn:mediator:test.mediator",
+  "version": "1.0.0",
+  "name": "test.mediator",
+  "description": "A test mediator",
+  "endpoints": [
+    {
+      "name": "Mediator",
+      "host": "localhost",
+      "port": "8800",
+      "type": "http"
+    }
+  ],
+  "configDefs": [
+    {
+      "param": "Setting 1",
+      "type": "string"
+    }, {
+      "param": "Setting 2",
+      "type": "number"
+    }, {
+      "param": "Setting 3",
+      "type": "bool"
+    }, {
+      "param": "Setting 4",
+      "type": "option",
+      "values": ["a", "b", "c"]
+    }
+  ],
+  "config": {
+    "Setting 1": "default1",
+    "Setting 2": 42,
+    "Setting 3": true,
+    "Setting 4": "b"
+  }
+}
