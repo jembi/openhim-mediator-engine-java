@@ -45,6 +45,7 @@ public class MediatorServer {
     private ScheduledExecutorService heartbeatService;
     private static final int initialHeartbeatDelaySeconds = 5;
     private long serverStartTime;
+    private boolean forceConfig;
 
 
     public MediatorServer(ActorSystem system, MediatorConfig config) {
@@ -78,13 +79,15 @@ public class MediatorServer {
     private void startHeartbeatService() {
         if (heartbeatService==null) {
             heartbeatService = Executors.newSingleThreadScheduledExecutor();
+            forceConfig = true;
         }
 
         heartbeatService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 long uptime = (System.currentTimeMillis()-serverStartTime)/1000;
-                rootActor.tell(new SendHeartbeatToCore(uptime), ActorRef.noSender());
+                rootActor.tell(new SendHeartbeatToCore(uptime, forceConfig), ActorRef.noSender());
+                forceConfig = false;
             }
         }, initialHeartbeatDelaySeconds, config.getHeartbeatPeriodSeconds(), TimeUnit.SECONDS);
     }
