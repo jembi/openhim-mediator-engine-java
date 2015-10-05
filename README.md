@@ -37,7 +37,7 @@ Note that `start()` is non-blocking.
 
 The server constructor also accepts an `ActorSystem` parameter (e.g. `new MediatorServer(myActorSytem, config)`), in the event that you want to manage this yourself. If _not_ passed, the server will create a new system. Note though that ActorSystem is a heavy object and there should ideally only be a single instance of this in your application.
 
-On startup server will register your mediator with the HIM core and you must pass the registration json info to the config (see [this page](http://openhim.readthedocs.org/en/latest/dev-guide/mediators.html) and **Configuration** section below for details about the json format).
+On startup server will register your mediator with the HIM core and you must pass the registration json info to the config (see [this page](http://openhim.readthedocs.org/en/latest/dev-guide/mediators.html) and **Configuration** section below for details).
 
 You will need at least one actor in your project to receive requests from the engine. If you're starting a new mediator, you can simply create an actor as follows:
 ```
@@ -174,7 +174,7 @@ try {
 In addition, you don't need to stress about unhandled exceptions either. Akka will automatically restart any actors that failed due to an exception. See the [Akka documentation](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html) for further details (the engine uses the default supervisor strategy, by default).
 
 # Configuration
-The mediator engine provides you with several configuration mechanisms, one which is required to setup the mediator within the engine in order to get it up and running, as well as several options that you can use to setup your own custom settings:
+The mediator engine provides you with several configuration mechanisms, both for setting up the mediator within the engine and core in order to get it up and running, as well as options that you can use to setup your own custom settings:
 * **Mediator config**: As seen in the **Getting Started** section, the `MediatorConfig` class is used to setup the mediator within the context of the engine.
 * **Registration config**: On startup, the mediator must register itself with core.
 * **Properties**: The engine provides a mechanism for loading custom settings from a standard [java properties file](https://docs.oracle.com/javase/tutorial/essential/environment/properties.html). This is useful for settings that you require at mediator startup, such as the OpenHIM Core configuration
