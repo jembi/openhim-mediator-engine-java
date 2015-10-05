@@ -79,9 +79,10 @@ public class MediatorServer {
     private void startHeartbeatService() {
         if (heartbeatService==null) {
             heartbeatService = Executors.newSingleThreadScheduledExecutor();
-            forceConfig = true;
         }
 
+        forceConfig = true;
+        
         heartbeatService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
