@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/jembi/openhim-mediator-engine-java.svg)](https://travis-ci.org/jembi/openhim-mediator-engine-java) [![OpenHIM Core](https://img.shields.io/badge/openhim--core-1.2%2B-brightgreen.svg)](http://www.openhim.org/faqs/openhim-core-versioning-and-compatibility/)
+[![Build Status](https://travis-ci.org/jembi/openhim-mediator-engine-java.svg)](https://travis-ci.org/jembi/openhim-mediator-engine-java) [![OpenHIM Core](https://img.shields.io/badge/openhim--core-1.2%2B-brightgreen.svg)](http://openhim.readthedocs.org/en/latest/user-guide/versioning.html)
 
 OpenHIM Mediator Engine
 =======================
@@ -21,7 +21,7 @@ Include the jar in your mediator project. If you're using Maven, simply add the 
 <dependency>
   <groupId>org.openhim</groupId>
   <artifactId>mediator-engine</artifactId>
-  <version>2.0.0</version>
+  <version>2.1.0</version>
 </dependency>
 ```
 
