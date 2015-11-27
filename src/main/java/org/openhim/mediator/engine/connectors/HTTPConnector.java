@@ -66,11 +66,18 @@ public class HTTPConnector extends UntypedActor {
     }
 
     private URI buildURI(MediatorHTTPRequest req) throws URISyntaxException {
-        URIBuilder builder = new URIBuilder()
-                .setScheme(req.getScheme())
-                .setHost(req.getHost())
-                .setPort(req.getPort())
-                .setPath(req.getPath());
+        URIBuilder builder;
+
+        if (req.getUri()!=null) {
+            builder = new URIBuilder(req.getUri());
+        } else {
+            builder = new URIBuilder()
+                    .setScheme(req.getScheme())
+                    .setHost(req.getHost())
+                    .setPort(req.getPort())
+                    .setPath(req.getPath());
+        }
+
         if (req.getParams()!=null) {
             Iterator<String> iter = req.getParams().keySet().iterator();
             while (iter.hasNext()) {
@@ -193,10 +200,12 @@ public class HTTPConnector extends UntypedActor {
         orch.setName(req.getOrchestration());
 
         CoreResponse.Request orchReq = new CoreResponse.Request();
-        orchReq.setBody(req.getBody());
-        orchReq.setHost(req.getHost());
-        orchReq.setPort(Integer.toString(req.getPort()));
-        orchReq.setPath(req.getPath());
+        if (req.getUri()==null) {
+            orchReq.setBody(req.getBody());
+            orchReq.setHost(req.getHost());
+            orchReq.setPort(Integer.toString(req.getPort()));
+            orchReq.setPath(req.getPath());
+        }
         orchReq.setMethod(req.getMethod());
         orchReq.setHeaders(req.getHeaders());
         orch.setRequest(orchReq);
