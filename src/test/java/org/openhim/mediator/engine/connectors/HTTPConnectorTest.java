@@ -246,4 +246,59 @@ public class HTTPConnectorTest {
             verify(getRequestedFor(urlEqualTo("/test/him/json")));
         }};
     }
+
+    @Test
+    public void testGETRequestWithURI() throws Exception {
+        stubFor(get(urlEqualTo("/test/get/with/uri"))
+                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "text/plain").withBody("test"))
+        );
+
+        new JavaTestKit(system) {{
+            final ActorRef httpConnector = system.actorOf(Props.create(HTTPConnector.class));
+
+            MediatorHTTPRequest GET_Request = new MediatorHTTPRequest(
+                    getRef(),
+                    getRef(),
+                    "unit-test",
+                    "GET",
+                    "http://localhost:8200/test/get/with/uri"
+            );
+
+            httpConnector.tell(GET_Request, getRef());
+
+            final Object[] out =
+                    new ReceiveWhile<Object>(Object.class, duration("2 seconds")) {
+                        @Override
+                        protected Object match(Object msg) throws Exception {
+                            if (msg instanceof MediatorHTTPResponse ||
+                                    msg instanceof AddOrchestrationToCoreResponse) {
+                                return msg;
+                            }
+                            throw noMatch();
+                        }
+                    }.get();
+
+            boolean foundResponse = false;
+            boolean foundAddOrchestration = false;
+
+            for (Object o : out) {
+                if (o instanceof MediatorHTTPResponse) {
+                    assertEquals(200, ((MediatorHTTPResponse) o).getStatusCode().intValue());
+                    assertEquals("test", ((MediatorHTTPResponse) o).getBody());
+                    assertEquals("text/plain", ((MediatorHTTPResponse) o).getHeaders().get("Content-Type"));
+                    foundResponse = true;
+                } else if (o instanceof AddOrchestrationToCoreResponse) {
+                    assertNotNull(((AddOrchestrationToCoreResponse) o).getOrchestration());
+                    assertEquals("unit-test", ((AddOrchestrationToCoreResponse) o).getOrchestration().getName());
+                    assertNotNull(((AddOrchestrationToCoreResponse) o).getOrchestration().getRequest());
+                    assertNotNull(((AddOrchestrationToCoreResponse) o).getOrchestration().getResponse());
+                    foundAddOrchestration = true;
+                }
+            }
+
+            assertTrue("http-connector must support URI strings", foundResponse);
+            assertTrue("http-connector must send AddOrchestrationToCoreResponse", foundAddOrchestration);
+            verify(getRequestedFor(urlEqualTo("/test/get/with/uri")));
+        }};
+    }
 }

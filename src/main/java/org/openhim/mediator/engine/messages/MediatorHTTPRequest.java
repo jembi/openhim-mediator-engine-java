@@ -15,6 +15,7 @@ import java.util.TreeMap;
 
 public class MediatorHTTPRequest extends MediatorRequestMessage {
     private final String method;
+    private final String uri;
     private final String scheme;
     private final String host;
     private final Integer port;
@@ -23,11 +24,12 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
     private final Map<String, String> headers;
     private final Map<String, String> params;
 
-    public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
-                               String method, String scheme, String host, Integer port, String path, String body,
+    private MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
+                               String method, String uri, String scheme, String host, Integer port, String path, String body,
                                Map<String, String> headers, Map<String, String> params, String correlationId) {
         super(requestHandler, respondTo, orchestration, correlationId);
         this.method = method;
+        this.uri = uri;
         this.scheme = scheme;
         this.host = host;
         this.port = port;
@@ -37,18 +39,65 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
         this.params = params;
     }
 
+    /**
+     * Construct a new mediator http request using a URI (string)
+     */
+    public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
+                               String method, String uri, String body, Map<String, String> headers, Map<String, String> params, String correlationId) {
+        this(
+                requestHandler, respondTo, orchestration, method, uri, null, null, null, null, body, headers, params, correlationId
+        );
+    }
+
+    /**
+     * Construct a new mediator http request using for a particular scheme, host, port and path
+     */
+    public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
+                               String method, String scheme, String host, Integer port, String path, String body,
+                               Map<String, String> headers, Map<String, String> params, String correlationId) {
+        this(
+                requestHandler, respondTo, orchestration, method, null, scheme, host, port, path, body, headers, params, correlationId
+        );
+    }
+
+    /**
+     * Construct a new mediator http request using a URI (string)
+     */
+    public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
+                               String method, String uri, String body, Map<String, String> headers, Map<String, String> params) {
+        this(
+                requestHandler, respondTo, orchestration, method, uri, null, null, null, null, body, headers, params, null
+        );
+    }
+
+    /**
+     * Construct a new mediator http request using for a particular scheme, host, port and path
+     */
     public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
                                String method, String scheme, String host, Integer port, String path, String body,
                                Map<String, String> headers, Map<String, String> params) {
         this(
-                requestHandler, respondTo, orchestration, method, scheme, host, port, path, body, headers, params, null
+                requestHandler, respondTo, orchestration, method, null, scheme, host, port, path, body, headers, params, null
         );
     }
 
+    /**
+     * Construct a new mediator http request using a URI (string)
+     */
+    public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration, String method, String uri) {
+        this(
+                requestHandler, respondTo, orchestration, method, uri, null, null, null, null,
+                null, Collections.<String, String>emptyMap(), Collections.<String, String>emptyMap(), null
+        );
+    }
+
+    /**
+     * Construct a new mediator http request using for a particular scheme, host, port and path
+     */
     public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
                                String method, String scheme, String host, Integer port, String path) {
         this(
-                requestHandler, respondTo, orchestration, method, scheme, host, port, path,
+                requestHandler, respondTo, orchestration, method, null, scheme, host, port, path,
                 null, Collections.<String, String>emptyMap(), Collections.<String, String>emptyMap(), null
         );
     }
@@ -62,6 +111,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
                 requestToCopy.getRespondTo(),
                 requestToCopy.getOrchestration(),
                 requestToCopy.getMethod(),
+                requestToCopy.getUri(),
                 requestToCopy.getScheme(),
                 requestToCopy.getHost(),
                 requestToCopy.getPort(),
@@ -82,6 +132,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
                 respondTo,
                 requestToCopy.getOrchestration(),
                 requestToCopy.getMethod(),
+                requestToCopy.getUri(),
                 requestToCopy.getScheme(),
                 requestToCopy.getHost(),
                 requestToCopy.getPort(),
@@ -104,6 +155,10 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
 
     public String getMethod() {
         return method;
+    }
+
+    public String getUri() {
+        return uri;
     }
 
     public String getScheme() {
