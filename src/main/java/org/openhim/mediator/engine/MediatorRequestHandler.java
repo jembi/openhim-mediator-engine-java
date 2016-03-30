@@ -12,7 +12,6 @@ import akka.event.LoggingAdapter;
 import org.apache.http.HttpStatus;
 import org.openhim.mediator.engine.messages.*;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -121,13 +120,17 @@ public class MediatorRequestHandler extends UntypedActor {
     private void processFinishRequestMessage(FinishRequest msg) {
         if (response.getResponse()==null) {
             CoreResponse.Response resp = new CoreResponse.Response();
+
             resp.setBody(msg.getResponse());
-            if (msg.getResponseMimeType()!=null) {
-                resp.putHeader("Content-Type", msg.getResponseMimeType());
-            }
             resp.setStatus(msg.getResponseStatus());
+
+            for (String header : msg.getResponseHeaders().keySet()) {
+                resp.putHeader(header, msg.getResponseHeaders().get(header));
+            }
+
             response.setResponse(resp);
         }
+
         respondAndEnd(msg.getResponseStatus());
     }
 
@@ -145,7 +148,7 @@ public class MediatorRequestHandler extends UntypedActor {
     }
 
     private void updateTransactionToCoreAPI() {
-        Map<String, String> headers = new HashMap<>();
+        Map<String, String> headers = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         headers.put("Content-Type", "application/json");
 
         MediatorHTTPRequest request = new MediatorHTTPRequest(
@@ -225,22 +228,29 @@ public class MediatorRequestHandler extends UntypedActor {
             requestCaller = getSender();
             coreTransactionID = ((MediatorHTTPRequest) msg).getHeaders().get("X-OpenHIM-TransactionID");
             routeRequest((MediatorHTTPRequest) msg);
+
         } else if (msg instanceof AcceptedAsyncRequest) {
             enableAsyncProcessing();
+
         } else if (msg instanceof FinishRequest) {
             processFinishRequestMessage((FinishRequest) msg);
+
         } else if (msg instanceof ExceptError) {
             exceptError(((ExceptError) msg).getError());
+
         } else if (msg instanceof AddOrchestrationToCoreResponse) {
             if (!finalizingRequest) {
                 response.addOrchestration(((AddOrchestrationToCoreResponse) msg).getOrchestration());
             }
+
         } else if (msg instanceof PutPropertyInCoreResponse) {
             if (!finalizingRequest) {
                 response.putProperty(((PutPropertyInCoreResponse) msg).getName(), ((PutPropertyInCoreResponse) msg).getValue());
             }
+
         } else if (msg instanceof MediatorHTTPResponse) {
             processResponseFromCoreAPI((MediatorHTTPResponse) msg);
+
         } else {
             unhandled(msg);
         }
