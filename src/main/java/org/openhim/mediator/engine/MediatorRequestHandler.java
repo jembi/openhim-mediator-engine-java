@@ -9,11 +9,15 @@ package org.openhim.mediator.engine;
 import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import akka.japi.Function;
 import org.apache.http.HttpStatus;
 import org.openhim.mediator.engine.messages.*;
+import scala.concurrent.duration.Duration;
 
 import java.util.Map;
 import java.util.TreeMap;
+
+import static akka.actor.SupervisorStrategy.stop;
 
 /**
  * <p>The request handler actor launched whenever a request is received.
@@ -60,6 +64,27 @@ public class MediatorRequestHandler extends UntypedActor {
         }
     }
 
+    /**
+     * Error handling strategy - ensures we respond to the client with a 500 if an unhandled error occurs
+     *
+     * This strategy will affect all child actors on the request context. In all cases we will stop them.
+     */
+    private SupervisorStrategy strategy = new OneForOneStrategy(
+        10, Duration.create("1 minute"), // n/a - we won't restart request specific actors
+        new Function<Throwable, SupervisorStrategy.Directive>() {
+            @Override
+            public SupervisorStrategy.Directive apply(Throwable t) {
+                exceptError(t);
+                return stop();
+            }
+        },
+        false // disable logging; exceptError will log
+    );
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return strategy;
+    }
 
 
     private void routeToActor(Class<? extends Actor> clazz, MediatorHTTPRequest request) {

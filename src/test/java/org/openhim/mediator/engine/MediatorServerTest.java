@@ -301,6 +301,82 @@ public class MediatorServerTest {
     }
 
 
+    private static class TestRuntimeException extends RuntimeException {}
+
+    private static class BadlyBehavedActor_Runtime extends UntypedActor {
+        @Override
+        public void onReceive(Object msg) throws Exception {
+            if (msg instanceof MediatorHTTPRequest) {
+                throw new TestRuntimeException();
+
+            } else {
+                fail("Unexpected message received " + msg);
+            }
+        }
+    }
+
+    /**
+     * Server should respond to client with a 500 if an error occurs
+     */
+    @Test
+    public void integrationTest_ErrorHandling_Runtime() throws Exception {
+        RoutingTable table = new RoutingTable();
+        table.addRoute("/error/runtime", BadlyBehavedActor_Runtime.class);
+        testConfig.setRoutingTable(table);
+
+        MediatorServer server = new MediatorServer(testConfig);
+
+        try {
+            server.start(false);
+
+            CloseableHttpResponse response = executeHTTPRequest("GET", "/error/runtime", null, null, null);
+            assertEquals(500, response.getStatusLine().getStatusCode());
+
+            IOUtils.closeQuietly(response);
+        } finally {
+            server.stop();
+        }
+    }
+
+
+    private static class TestCheckedException extends Exception {}
+
+    private static class BadlyBehavedActor_Checked extends UntypedActor {
+        @Override
+        public void onReceive(Object msg) throws Exception {
+            if (msg instanceof MediatorHTTPRequest) {
+                throw new TestCheckedException();
+
+            } else {
+                fail("Unexpected message received " + msg);
+            }
+        }
+    }
+
+    /**
+     * Server should respond to client with a 500 if an error occurs
+     */
+    @Test
+    public void integrationTest_ErrorHandling_Checked() throws Exception {
+        RoutingTable table = new RoutingTable();
+        table.addRoute("/error/runtime", BadlyBehavedActor_Checked.class);
+        testConfig.setRoutingTable(table);
+
+        MediatorServer server = new MediatorServer(testConfig);
+
+        try {
+            server.start(false);
+
+            CloseableHttpResponse response = executeHTTPRequest("GET", "/error/runtime", null, null, null);
+            assertEquals(500, response.getStatusLine().getStatusCode());
+
+            IOUtils.closeQuietly(response);
+        } finally {
+            server.stop();
+        }
+    }
+
+
     private CloseableHttpResponse executeHTTPRequest(String method, String path, String body, Map<String, String> headers, Map<String, String> params) throws URISyntaxException, IOException {
         URIBuilder builder = new URIBuilder()
                 .setScheme("http")

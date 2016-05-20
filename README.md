@@ -21,7 +21,7 @@ Include the jar in your mediator project. If you're using Maven, simply add the 
 <dependency>
   <groupId>org.openhim</groupId>
   <artifactId>mediator-engine</artifactId>
-  <version>2.3.0</version>
+  <version>2.3.1</version>
 </dependency>
 ```
 
@@ -171,7 +171,7 @@ try {
 }
 ```
 
-In addition, you don't need to stress about unhandled exceptions either. Akka will automatically restart any actors that failed due to an exception. See the [Akka documentation](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html) for further details (the engine uses the default supervisor strategy, by default).
+If an exception occurs that is not handled by an actor, then the request handler will automatically respond with a 500 status.
 
 # Configuration
 The mediator engine provides you with several configuration mechanisms, both for setting up the mediator within the engine and core in order to get it up and running, as well as options that you can use to setup your own custom settings:
@@ -255,6 +255,11 @@ actor.tell(aMsg, getSelf());
 ```
 
 Although deciding on when to instantiate actors ultimately depends on your own implementation, we follow the convention of using per-request (`actorOf` used within the request context) for any actors that require any state that's specific to the request and single instance actors (startup actors and `actorSelection`) otherwise.
+
+## Error Handling Strategies
+By default, if an unhandled exception occurs in an actor then the request handler will automatically respond to the client with a 500 status. However this does not apply to single instance actors (startup actors); for these the default Akka supervisor strategy will be used, meaning that Akka will attempt to restart the actor.
+
+You can also override the error handling strategies in any of your own actors (both per-request and single instance); see the [Akka documentation](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html).
 
 # License
 This software is licensed under the Mozilla Public License Version 2.0.
