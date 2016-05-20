@@ -257,7 +257,7 @@ actor.tell(aMsg, getSelf());
 Although deciding on when to instantiate actors ultimately depends on your own implementation, we follow the convention of using per-request (`actorOf` used within the request context) for any actors that require any state that's specific to the request and single instance actors (startup actors and `actorSelection`) otherwise.
 
 ## Error Handling Strategies
-By default, if an unhandled exception occurs in an actor then the request handler will automatically respond to the client with a 500 status. However this does not apply to single instance actors (startup actors); for these the default Akka supervisor strategy will be used, meaning that Akka will attempt to restart the actor.
+By default, if an unhandled exception occurs in an actor then the request handler will automatically respond to the client with a 500 status. However this does not apply to single instance actors (startup actors); for these the [default Akka supervisor strategy](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html#Default_Supervisor_Strategy) will be used.
 
 You can also override the error handling strategies in any of your own actors (both per-request and single instance); see the [Akka documentation](http://doc.akka.io/docs/akka/2.3.8/java/fault-tolerance.html).
 
