@@ -6,7 +6,11 @@
 
 package org.openhim.mediator.engine;
 
-import akka.actor.*;
+import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
+import akka.actor.Inbox;
+import akka.actor.Props;
+import akka.actor.UntypedActor;
 import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -18,11 +22,17 @@ import org.openhim.mediator.engine.connectors.CoreAPIConnector;
 import org.openhim.mediator.engine.connectors.HTTPConnector;
 import org.openhim.mediator.engine.connectors.MLLPConnector;
 import org.openhim.mediator.engine.connectors.UDPFireForgetConnector;
-import org.openhim.mediator.engine.messages.*;
+import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
+import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
+import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
+import org.openhim.mediator.engine.messages.SendHeartbeatToCore;
+import org.openhim.mediator.engine.messages.SendHeartbeatToCoreResponse;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -120,9 +130,9 @@ public class MediatorRootActor extends UntypedActor {
             headers.put(hdr, request.getRequest().getHeader(hdr));
         }
 
-        final Map<String, String> params = new HashMap<>();
+        final Map<String, String[]> params = new HashMap<>();
         for (String param : request.getRequest().getParameterNames()) {
-            params.put(param, request.getRequest().getParameter(param));
+            params.put(param, request.getRequest().getParameterValues(param));
         }
 
         in.notifyAvailable(new ReadHandler() {
@@ -170,7 +180,7 @@ public class MediatorRootActor extends UntypedActor {
     }
 
     private MediatorHTTPRequest buildMediatorHTTPRequest(ActorRef requestHandler, GrizzlyHTTPRequest request,
-                                                         String body, Map<String, String> headers, Map<String, String> params) {
+                                                         String body, Map<String, String> headers, Map<String, String[]> params) {
         return new MediatorHTTPRequest(
                 requestHandler,
                 requestHandler,

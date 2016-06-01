@@ -261,9 +261,9 @@ public class MediatorServerTest {
         @Override
         public void onReceive(Object msg) throws Exception {
             if (msg instanceof MediatorHTTPRequest) {
-                assertEquals("value1", ((MediatorHTTPRequest) msg).getParams().get("param1"));
-                assertEquals("value2", ((MediatorHTTPRequest) msg).getParams().get("param2"));
-                assertEquals("value3", ((MediatorHTTPRequest) msg).getParams().get("param3"));
+                assertEquals("value1", ((MediatorHTTPRequest) msg).getParams().get("param1")[0]);
+                assertEquals("value2", ((MediatorHTTPRequest) msg).getParams().get("param2")[0]);
+                assertEquals("value3", ((MediatorHTTPRequest) msg).getParams().get("param3")[0]);
 
                 FinishRequest fr = new FinishRequest("basic-mediator", "text/plain", 200);
                 ((MediatorHTTPRequest) msg).getRequestHandler().tell(fr, getSelf());
@@ -287,10 +287,52 @@ public class MediatorServerTest {
         try {
             server.start(false);
 
-            Map<String, String> params = new HashMap<>();
-            params.put("param1", "value1");
-            params.put("param2", "value2");
-            params.put("param3", "value3");
+            Map<String, String[]> params = new HashMap<>();
+            params.put("param1", new String[]{"value1"});
+            params.put("param2", new String[]{"value2"});
+            params.put("param3", new String[]{"value3"});
+            CloseableHttpResponse response = executeHTTPRequest("GET", "/paramTest", null, null, params);
+            assertEquals(200, response.getStatusLine().getStatusCode());
+
+            IOUtils.closeQuietly(response);
+        } finally {
+            server.stop();
+        }
+    }
+
+
+    private static class MultiParamTestMediatorActor extends UntypedActor {
+        @Override
+        public void onReceive(Object msg) throws Exception {
+            if (msg instanceof MediatorHTTPRequest) {
+                assertEquals("value1", ((MediatorHTTPRequest) msg).getParams().get("param1")[0]);
+                assertEquals("value2", ((MediatorHTTPRequest) msg).getParams().get("param1")[1]);
+                assertEquals("value3", ((MediatorHTTPRequest) msg).getParams().get("param1")[2]);
+
+                FinishRequest fr = new FinishRequest("basic-mediator", "text/plain", 200);
+                ((MediatorHTTPRequest) msg).getRequestHandler().tell(fr, getSelf());
+            } else {
+                fail("Unexpected message received " + msg);
+            }
+        }
+    }
+
+    /**
+     * Validates that multiple parameters with the same name get sent through correctly
+     */
+    @Test
+    public void integrationTest_ValidateMultiParams() throws Exception {
+        RoutingTable table = new RoutingTable();
+        table.addRoute("/paramTest", MultiParamTestMediatorActor.class);
+        testConfig.setRoutingTable(table);
+
+        MediatorServer server = new MediatorServer(testConfig);
+
+        try {
+            server.start(false);
+
+            Map<String, String[]> params = new HashMap<>();
+            params.put("param1", new String[]{"value1", "value2", "value3"});
             CloseableHttpResponse response = executeHTTPRequest("GET", "/paramTest", null, null, params);
             assertEquals(200, response.getStatusLine().getStatusCode());
 
@@ -377,7 +419,7 @@ public class MediatorServerTest {
     }
 
 
-    private CloseableHttpResponse executeHTTPRequest(String method, String path, String body, Map<String, String> headers, Map<String, String> params) throws URISyntaxException, IOException {
+    private CloseableHttpResponse executeHTTPRequest(String method, String path, String body, Map<String, String> headers, Map<String, String[]> params) throws URISyntaxException, IOException {
         URIBuilder builder = new URIBuilder()
                 .setScheme("http")
                 .setHost(testConfig.getServerHost())
@@ -388,7 +430,9 @@ public class MediatorServerTest {
             Iterator<String> iter = params.keySet().iterator();
             while (iter.hasNext()) {
                 String param = iter.next();
-                builder.addParameter(param, params.get(param));
+                for (String p : params.get(param)) {
+                    builder.addParameter(param, p);
+                }
             }
         }
 

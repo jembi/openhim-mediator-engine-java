@@ -82,7 +82,9 @@ public class HTTPConnector extends UntypedActor {
             Iterator<String> iter = req.getParams().keySet().iterator();
             while (iter.hasNext()) {
                 String param = iter.next();
-                builder.addParameter(param, req.getParams().get(param));
+                for (String p : req.getParams().get(param)) {
+                    builder.addParameter(param, p);
+                }
             }
         }
         return builder.build();
