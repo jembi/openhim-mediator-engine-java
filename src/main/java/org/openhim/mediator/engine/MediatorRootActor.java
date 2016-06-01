@@ -15,6 +15,7 @@ import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.http.server.Response;
@@ -35,7 +36,8 @@ import scala.concurrent.duration.FiniteDuration;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
@@ -130,9 +132,11 @@ public class MediatorRootActor extends UntypedActor {
             headers.put(hdr, request.getRequest().getHeader(hdr));
         }
 
-        final Map<String, String[]> params = new HashMap<>();
+        final List<Pair<String, String>> params = new ArrayList<>();
         for (String param : request.getRequest().getParameterNames()) {
-            params.put(param, request.getRequest().getParameterValues(param));
+            for (String value : request.getRequest().getParameterValues(param)) {
+                params.add(Pair.of(param, value));
+            }
         }
 
         in.notifyAvailable(new ReadHandler() {
@@ -180,7 +184,7 @@ public class MediatorRootActor extends UntypedActor {
     }
 
     private MediatorHTTPRequest buildMediatorHTTPRequest(ActorRef requestHandler, GrizzlyHTTPRequest request,
-                                                         String body, Map<String, String> headers, Map<String, String[]> params) {
+                                                         String body, Map<String, String> headers, List<Pair<String, String>> params) {
         return new MediatorHTTPRequest(
                 requestHandler,
                 requestHandler,

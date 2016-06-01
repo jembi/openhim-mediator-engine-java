@@ -8,6 +8,7 @@ package org.openhim.mediator.engine;
 
 import akka.actor.UntypedActor;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.Header;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.*;
@@ -22,8 +23,10 @@ import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -261,9 +264,12 @@ public class MediatorServerTest {
         @Override
         public void onReceive(Object msg) throws Exception {
             if (msg instanceof MediatorHTTPRequest) {
-                assertEquals("value1", ((MediatorHTTPRequest) msg).getParams().get("param1")[0]);
-                assertEquals("value2", ((MediatorHTTPRequest) msg).getParams().get("param2")[0]);
-                assertEquals("value3", ((MediatorHTTPRequest) msg).getParams().get("param3")[0]);
+                assertEquals("param1", ((MediatorHTTPRequest) msg).getParams().get(0).getKey());
+                assertEquals("value1", ((MediatorHTTPRequest) msg).getParams().get(0).getValue());
+                assertEquals("param2", ((MediatorHTTPRequest) msg).getParams().get(1).getKey());
+                assertEquals("value2", ((MediatorHTTPRequest) msg).getParams().get(1).getValue());
+                assertEquals("param3", ((MediatorHTTPRequest) msg).getParams().get(2).getKey());
+                assertEquals("value3", ((MediatorHTTPRequest) msg).getParams().get(2).getValue());
 
                 FinishRequest fr = new FinishRequest("basic-mediator", "text/plain", 200);
                 ((MediatorHTTPRequest) msg).getRequestHandler().tell(fr, getSelf());
@@ -287,10 +293,10 @@ public class MediatorServerTest {
         try {
             server.start(false);
 
-            Map<String, String[]> params = new HashMap<>();
-            params.put("param1", new String[]{"value1"});
-            params.put("param2", new String[]{"value2"});
-            params.put("param3", new String[]{"value3"});
+            List<Pair<String, String>> params = new ArrayList<>();
+            params.add(Pair.of("param1", "value1"));
+            params.add(Pair.of("param2", "value2"));
+            params.add(Pair.of("param3", "value3"));
             CloseableHttpResponse response = executeHTTPRequest("GET", "/paramTest", null, null, params);
             assertEquals(200, response.getStatusLine().getStatusCode());
 
@@ -305,9 +311,12 @@ public class MediatorServerTest {
         @Override
         public void onReceive(Object msg) throws Exception {
             if (msg instanceof MediatorHTTPRequest) {
-                assertEquals("value1", ((MediatorHTTPRequest) msg).getParams().get("param1")[0]);
-                assertEquals("value2", ((MediatorHTTPRequest) msg).getParams().get("param1")[1]);
-                assertEquals("value3", ((MediatorHTTPRequest) msg).getParams().get("param1")[2]);
+                assertEquals("param1", ((MediatorHTTPRequest) msg).getParams().get(0).getKey());
+                assertEquals("value1", ((MediatorHTTPRequest) msg).getParams().get(0).getValue());
+                assertEquals("param1", ((MediatorHTTPRequest) msg).getParams().get(1).getKey());
+                assertEquals("value2", ((MediatorHTTPRequest) msg).getParams().get(1).getValue());
+                assertEquals("param1", ((MediatorHTTPRequest) msg).getParams().get(2).getKey());
+                assertEquals("value3", ((MediatorHTTPRequest) msg).getParams().get(2).getValue());
 
                 FinishRequest fr = new FinishRequest("basic-mediator", "text/plain", 200);
                 ((MediatorHTTPRequest) msg).getRequestHandler().tell(fr, getSelf());
@@ -331,8 +340,10 @@ public class MediatorServerTest {
         try {
             server.start(false);
 
-            Map<String, String[]> params = new HashMap<>();
-            params.put("param1", new String[]{"value1", "value2", "value3"});
+            List<Pair<String, String>> params = new ArrayList<>();
+            params.add(Pair.of("param1", "value1"));
+            params.add(Pair.of("param1", "value2"));
+            params.add(Pair.of("param1", "value3"));
             CloseableHttpResponse response = executeHTTPRequest("GET", "/paramTest", null, null, params);
             assertEquals(200, response.getStatusLine().getStatusCode());
 
@@ -419,7 +430,7 @@ public class MediatorServerTest {
     }
 
 
-    private CloseableHttpResponse executeHTTPRequest(String method, String path, String body, Map<String, String> headers, Map<String, String[]> params) throws URISyntaxException, IOException {
+    private CloseableHttpResponse executeHTTPRequest(String method, String path, String body, Map<String, String> headers, List<Pair<String, String>> params) throws URISyntaxException, IOException {
         URIBuilder builder = new URIBuilder()
                 .setScheme("http")
                 .setHost(testConfig.getServerHost())
@@ -427,12 +438,8 @@ public class MediatorServerTest {
                 .setPath(path);
 
         if (params!=null) {
-            Iterator<String> iter = params.keySet().iterator();
-            while (iter.hasNext()) {
-                String param = iter.next();
-                for (String p : params.get(param)) {
-                    builder.addParameter(param, p);
-                }
+            for (Pair<String, String> param : params) {
+                builder.addParameter(param.getKey(), param.getValue());
             }
         }
 

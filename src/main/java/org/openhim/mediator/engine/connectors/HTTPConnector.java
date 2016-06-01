@@ -11,6 +11,7 @@ import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.Header;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
@@ -79,14 +80,11 @@ public class HTTPConnector extends UntypedActor {
         }
 
         if (req.getParams()!=null) {
-            Iterator<String> iter = req.getParams().keySet().iterator();
-            while (iter.hasNext()) {
-                String param = iter.next();
-                for (String p : req.getParams().get(param)) {
-                    builder.addParameter(param, p);
-                }
+            for (Pair<String, String> param : req.getParams()) {
+                builder.addParameter(param.getKey(), param.getValue());
             }
         }
+
         return builder.build();
     }
 
