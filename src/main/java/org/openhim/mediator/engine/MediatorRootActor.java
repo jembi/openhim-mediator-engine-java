@@ -6,11 +6,16 @@
 
 package org.openhim.mediator.engine;
 
-import akka.actor.*;
+import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
+import akka.actor.Inbox;
+import akka.actor.Props;
+import akka.actor.UntypedActor;
 import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.glassfish.grizzly.ReadHandler;
 import org.glassfish.grizzly.http.io.NIOReader;
 import org.glassfish.grizzly.http.server.Response;
@@ -18,14 +23,21 @@ import org.openhim.mediator.engine.connectors.CoreAPIConnector;
 import org.openhim.mediator.engine.connectors.HTTPConnector;
 import org.openhim.mediator.engine.connectors.MLLPConnector;
 import org.openhim.mediator.engine.connectors.UDPFireForgetConnector;
-import org.openhim.mediator.engine.messages.*;
+import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
+import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
+import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
+import org.openhim.mediator.engine.messages.SendHeartbeatToCore;
+import org.openhim.mediator.engine.messages.SendHeartbeatToCoreResponse;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
@@ -120,9 +132,11 @@ public class MediatorRootActor extends UntypedActor {
             headers.put(hdr, request.getRequest().getHeader(hdr));
         }
 
-        final Map<String, String> params = new HashMap<>();
+        final List<Pair<String, String>> params = new ArrayList<>();
         for (String param : request.getRequest().getParameterNames()) {
-            params.put(param, request.getRequest().getParameter(param));
+            for (String value : request.getRequest().getParameterValues(param)) {
+                params.add(Pair.of(param, value));
+            }
         }
 
         in.notifyAvailable(new ReadHandler() {
@@ -170,7 +184,7 @@ public class MediatorRootActor extends UntypedActor {
     }
 
     private MediatorHTTPRequest buildMediatorHTTPRequest(ActorRef requestHandler, GrizzlyHTTPRequest request,
-                                                         String body, Map<String, String> headers, Map<String, String> params) {
+                                                         String body, Map<String, String> headers, List<Pair<String, String>> params) {
         return new MediatorHTTPRequest(
                 requestHandler,
                 requestHandler,

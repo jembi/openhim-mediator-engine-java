@@ -7,9 +7,11 @@
 package org.openhim.mediator.engine.messages;
 
 import akka.actor.ActorRef;
+import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -22,11 +24,11 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
     private final String path;
     private final String body;
     private final Map<String, String> headers;
-    private final Map<String, String> params;
+    private final List<Pair<String, String>> params;
 
     private MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
                                String method, String uri, String scheme, String host, Integer port, String path, String body,
-                               Map<String, String> headers, Map<String, String> params, String correlationId) {
+                               Map<String, String> headers, List<Pair<String, String>> params, String correlationId) {
         super(requestHandler, respondTo, orchestration, correlationId);
         this.method = method;
         this.uri = uri;
@@ -43,7 +45,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
      * Construct a new mediator http request using a URI (string)
      */
     public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
-                               String method, String uri, String body, Map<String, String> headers, Map<String, String> params, String correlationId) {
+                               String method, String uri, String body, Map<String, String> headers, List<Pair<String, String>> params, String correlationId) {
         this(
                 requestHandler, respondTo, orchestration, method, uri, null, null, null, null, body, headers, params, correlationId
         );
@@ -54,7 +56,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
      */
     public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
                                String method, String scheme, String host, Integer port, String path, String body,
-                               Map<String, String> headers, Map<String, String> params, String correlationId) {
+                               Map<String, String> headers, List<Pair<String, String>> params, String correlationId) {
         this(
                 requestHandler, respondTo, orchestration, method, null, scheme, host, port, path, body, headers, params, correlationId
         );
@@ -64,7 +66,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
      * Construct a new mediator http request using a URI (string)
      */
     public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
-                               String method, String uri, String body, Map<String, String> headers, Map<String, String> params) {
+                               String method, String uri, String body, Map<String, String> headers, List<Pair<String, String>> params) {
         this(
                 requestHandler, respondTo, orchestration, method, uri, null, null, null, null, body, headers, params, null
         );
@@ -75,7 +77,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
      */
     public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration,
                                String method, String scheme, String host, Integer port, String path, String body,
-                               Map<String, String> headers, Map<String, String> params) {
+                               Map<String, String> headers, List<Pair<String, String>> params) {
         this(
                 requestHandler, respondTo, orchestration, method, null, scheme, host, port, path, body, headers, params, null
         );
@@ -87,7 +89,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
     public MediatorHTTPRequest(ActorRef requestHandler, ActorRef respondTo, String orchestration, String method, String uri) {
         this(
                 requestHandler, respondTo, orchestration, method, uri, null, null, null, null,
-                null, Collections.<String, String>emptyMap(), Collections.<String, String>emptyMap(), null
+                null, Collections.<String, String>emptyMap(), Collections.<Pair<String, String>>emptyList(), null
         );
     }
 
@@ -98,7 +100,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
                                String method, String scheme, String host, Integer port, String path) {
         this(
                 requestHandler, respondTo, orchestration, method, null, scheme, host, port, path,
-                null, Collections.<String, String>emptyMap(), Collections.<String, String>emptyMap(), null
+                null, Collections.<String, String>emptyMap(), Collections.<Pair<String, String>>emptyList(), null
         );
     }
 
@@ -118,7 +120,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
                 requestToCopy.getPath(),
                 requestToCopy.getBody(),
                 copyOfHeaders(requestToCopy.getHeaders()),
-                requestToCopy.getParams()!=null ? new HashMap<>(requestToCopy.getParams()) : null,
+                requestToCopy.getParams()!=null ? new ArrayList<>(requestToCopy.getParams()) : null,
                 requestToCopy.getCorrelationId()
         );
     }
@@ -139,7 +141,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
                 requestToCopy.getPath(),
                 requestToCopy.getBody(),
                 copyOfHeaders(requestToCopy.getHeaders()),
-                requestToCopy.getParams()!=null ? new HashMap<>(requestToCopy.getParams()) : null,
+                requestToCopy.getParams()!=null ? new ArrayList<>(requestToCopy.getParams()) : null,
                 correlationId
         );
     }
@@ -185,7 +187,7 @@ public class MediatorHTTPRequest extends MediatorRequestMessage {
         return headers;
     }
 
-    public Map<String, String> getParams() {
+    public List<Pair<String,String>> getParams() {
         return params;
     }
 }
