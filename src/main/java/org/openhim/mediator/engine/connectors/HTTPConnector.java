@@ -45,8 +45,8 @@ import static akka.dispatch.Futures.future;
  * <br/><br/>
  * Supports the following messages:
  * <ul>
- * <li>MediatorHTTPRequest - responds with MediatorHTTPResponse</li>
- * <li>SetupHTTPSCertificate - no response</li>
+ * <li>{@link MediatorHTTPRequest} - responds with {@link MediatorHTTPResponse}</li>
+ * <li>{@link SetupHTTPSCertificate} - no response</li>
  * </ul>
  */
 public class HTTPConnector extends UntypedActor {
@@ -257,14 +257,14 @@ public class HTTPConnector extends UntypedActor {
                         //send response
                         req.getRespondTo().tell(response, getSelf());
                     } catch (Exception ex) {
-                        req.getRequestHandler().tell(new ExceptError(ex), getSelf());
+                        req.getRequestHandler().tell(new ExceptError(req, ex), getSelf());
                     } finally {
                         IOUtils.closeQuietly(result);
                     }
                 }
             }, ec);
         } catch (URISyntaxException | UnsupportedEncodingException | UnsupportedOperationException ex) {
-            req.getRequestHandler().tell(new ExceptError(ex), getSelf());
+            req.getRequestHandler().tell(new ExceptError(req, ex), getSelf());
         }
     }
 

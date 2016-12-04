@@ -213,6 +213,8 @@ RegistrationConfig regConfig = new RegistrationConfig(json);
 config.setRegistrationConfig(regConfig);
 ```
 
+The mediator will reattempt the registration request if core is unavailable, e.g. if the mediator starts up before core. It will continue attempting the request until it successful.
+
 ## Properties
 You can load a standard properties file into `MediatorConfig` using the overloaded `setProperties` method. These are then availabe via `getProperties()` and `getProperty(String)` for looking up a key/value pair. If you are using dynamic configuration (described below) then these properties can be useful for any static configuration that you may have.
 

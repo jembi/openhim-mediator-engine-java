@@ -11,10 +11,10 @@ import akka.dispatch.OnComplete;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.apache.commons.io.IOUtils;
-import org.openhim.mediator.engine.messages.ExceptError;
 import org.openhim.mediator.engine.messages.MediatorSocketRequest;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -31,7 +31,7 @@ import static akka.dispatch.Futures.future;
  * <br/><br/>
  * Supports the following messages:
  * <ul>
- * <li>MediatorSocketRequest - fire and forget, no response</li>
+ * <li>{@link MediatorSocketRequest} - fire and forget, no response</li>
  * </ul>
  */
 public class UDPFireForgetConnector extends UntypedActor {
