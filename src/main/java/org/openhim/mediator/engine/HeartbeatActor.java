@@ -106,7 +106,7 @@ public class HeartbeatActor extends UntypedActor {
                     },
                     getContext().system().dispatcher()
             );
-            }
+        }
     }
 
     private void startHeartbeatTask() {
