@@ -21,7 +21,7 @@ Include the jar in your mediator project. If you're using Maven, simply add the 
 <dependency>
   <groupId>org.openhim</groupId>
   <artifactId>mediator-engine</artifactId>
-  <version>3.0.0</version>
+  <version>3.1.0</version>
 </dependency>
 ```
 
