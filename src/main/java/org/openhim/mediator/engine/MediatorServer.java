@@ -7,20 +7,19 @@
 package org.openhim.mediator.engine;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import org.glassfish.grizzly.http.server.*;
+import org.glassfish.grizzly.http.server.HttpHandler;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.http.server.NetworkListener;
+import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
-import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
-import org.openhim.mediator.engine.messages.SendHeartbeatToCore;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * The mediator engine HTTP server.
@@ -28,9 +27,8 @@ import java.util.concurrent.TimeUnit;
  * Its roles are to:
  * <ul>
  * <li>provide the http server for the mediator,</li>
- * <li>launch default actor system if none are provided,</li>
- * <li>trigger the registration of the mediator to core, and</li>
- * <li>periodically trigger heartbeat requests to core.</li>
+ * <li>launch default actor system if none are provided, and</li>
+ * <li>start/stop the heartbeat service.</li>
  * </ul>
  */
 public class MediatorServer {
@@ -41,11 +39,6 @@ public class MediatorServer {
     private final ActorRef rootActor;
     private final MediatorConfig config;
     private final HttpServer httpServer;
-
-    private ScheduledExecutorService heartbeatService;
-    private static final int initialHeartbeatDelaySeconds = 5;
-    private long serverStartTime;
-    private boolean forceConfig;
 
 
     public MediatorServer(ActorSystem system, MediatorConfig config) {
@@ -76,50 +69,22 @@ public class MediatorServer {
         });
     }
 
-    private void startHeartbeatService() {
-        if (heartbeatService==null) {
-            heartbeatService = Executors.newSingleThreadScheduledExecutor();
-        }
-
-        forceConfig = true;
-        
-        heartbeatService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                long uptime = (System.currentTimeMillis()-serverStartTime)/1000;
-                rootActor.tell(new SendHeartbeatToCore(uptime, forceConfig), ActorRef.noSender());
-                forceConfig = false;
-            }
-        }, initialHeartbeatDelaySeconds, config.getHeartbeatPeriodSeconds(), TimeUnit.SECONDS);
-    }
-
-    private void stopHeartbeatService() {
-        if (heartbeatService!=null) {
-            heartbeatService.shutdownNow();
-        }
-    }
 
     public void start() throws IOException {
         start(true);
     }
 
     public void start(boolean registerMediatorWithCore) throws IOException {
-        serverStartTime = System.currentTimeMillis();
         httpServer.start();
 
-        if (registerMediatorWithCore) {
-            rootActor.tell(new RegisterMediatorWithCore(), ActorRef.noSender());
-        }
-
-        if (config.getHeartsbeatEnabled()) {
-            startHeartbeatService();
-        }
+        ActorSelection heartbeat = system.actorSelection(config.userPathFor("heartbeat"));
+        heartbeat.tell(new HeartbeatActor.Start(registerMediatorWithCore), ActorRef.noSender());
     }
 
     public void stop() {
-        if (config.getHeartsbeatEnabled()) {
-            stopHeartbeatService();
-        }
+        ActorSelection heartbeat = system.actorSelection(config.userPathFor("heartbeat"));
+        heartbeat.tell(new HeartbeatActor.Stop(), ActorRef.noSender());
+
         httpServer.shutdownNow();
 
         if (isDefaultActorSystem) {

@@ -10,10 +10,20 @@ package org.openhim.mediator.engine.messages;
  * A message indicating that an error has occurred and the request should terminate
  */
 public class ExceptError {
+    private final Object originalRequest;
     private final Throwable error;
 
-    public ExceptError(Throwable error) {
+    public ExceptError(Object originalRequest, Throwable error) {
+        this.originalRequest = originalRequest;
         this.error = error;
+    }
+
+    public ExceptError(Throwable error) {
+        this(null, error);
+    }
+
+    public Object getOriginalRequest() {
+        return originalRequest;
     }
 
     public Throwable getError() {

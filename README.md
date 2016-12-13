@@ -21,7 +21,7 @@ Include the jar in your mediator project. If you're using Maven, simply add the 
 <dependency>
   <groupId>org.openhim</groupId>
   <artifactId>mediator-engine</artifactId>
-  <version>3.0.0</version>
+  <version>3.1.0</version>
 </dependency>
 ```
 
@@ -212,6 +212,8 @@ InputStream json = ... //or String
 RegistrationConfig regConfig = new RegistrationConfig(json);
 config.setRegistrationConfig(regConfig);
 ```
+
+The mediator will reattempt the registration request if there is an error, e.g. if the mediator starts up before core and core is unavailable. It will continue attempting to send requests until successful.
 
 ## Properties
 You can load a standard properties file into `MediatorConfig` using the overloaded `setProperties` method. These are then availabe via `getProperties()` and `getProperty(String)` for looking up a key/value pair. If you are using dynamic configuration (described below) then these properties can be useful for any static configuration that you may have.

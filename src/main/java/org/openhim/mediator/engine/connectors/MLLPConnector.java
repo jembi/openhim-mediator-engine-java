@@ -40,7 +40,7 @@ import static akka.dispatch.Futures.future;
  * <br/><br/>
  * Supports the following messages:
  * <ul>
- * <li>MediatorSocketRequest - responds with MediatorSocketResponse</li>
+ * <li>{@link MediatorSocketRequest} - responds with {@link MediatorSocketResponse}</li>
  * </ul>
  */
 public class MLLPConnector extends UntypedActor {

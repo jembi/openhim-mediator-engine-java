@@ -15,7 +15,14 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import org.openhim.mediator.engine.MediatorConfig;
 import org.openhim.mediator.engine.RegistrationConfig;
-import org.openhim.mediator.engine.messages.*;
+import org.openhim.mediator.engine.messages.AddOrchestrationToCoreResponse;
+import org.openhim.mediator.engine.messages.ExceptError;
+import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
+import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.engine.messages.RegisterMediatorWithCore;
+import org.openhim.mediator.engine.messages.RegisterMediatorWithCoreResponse;
+import org.openhim.mediator.engine.messages.SendHeartbeatToCore;
+import org.openhim.mediator.engine.messages.SendHeartbeatToCoreResponse;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -28,11 +35,12 @@ import java.util.UUID;
  * <br/><br/>
  * Supports the following messages:
  * <ul>
- * <li>RegisterMediatorWithCore: Register the mediator with core - no response</li>
- * <li>MediatorHTTPRequest: Will add the auth headers to the request and forward it to http-connector -
- * responds with MediatorHTTPResponse</li>
- * <li>SendHeartbeatToCore: Send a heartbeat to core and update the dynamic config map with any changes -
- * responds with MediatorHTTPResponse</li>
+ * <li>{@link RegisterMediatorWithCore}: Register the mediator with core -
+ * responds with {@link RegisterMediatorWithCoreResponse}</li>
+ * <li>{@link MediatorHTTPRequest}: Will add the auth headers to the request and forward it to http-connector -
+ * responds with {@link MediatorHTTPResponse}</li>
+ * <li>{@link SendHeartbeatToCore}: Send a heartbeat to core and update the dynamic config map with any changes -
+ * responds with {@link SendHeartbeatToCoreResponse}</li>
  * </ul>
  */
 public class CoreAPIConnector extends UntypedActor {
@@ -199,10 +207,14 @@ public class CoreAPIConnector extends UntypedActor {
     }
 
     private void handleRegisterMediatorResponse(MediatorHTTPResponse msg) {
-        log.info("Sent mediator registration message to core");
-        log.info(String.format("Response: %s (%s)", msg.getStatusCode(), msg.getBody()));
+        boolean success = true;
 
-        activeRequests.remove(msg.getOriginalRequest().getCorrelationId());
+        if (msg.getStatusCode() != 201) {
+            success = false;
+        }
+
+        MediatorHTTPRequest originalHttp = activeRequests.remove(msg.getOriginalRequest().getCorrelationId());
+        originalHttp.getRespondTo().tell(new RegisterMediatorWithCoreResponse(success, msg.getStatusCode(), msg.getBody()), getSelf());
     }
 
     private void handleAuthenticationResponse(MediatorHTTPResponse msg) {
@@ -250,10 +262,30 @@ public class CoreAPIConnector extends UntypedActor {
         }
     }
 
+    private void handleExceptError(ExceptError error) {
+        if (error.getOriginalRequest() instanceof MediatorHTTPRequest) {
+            MediatorHTTPRequest original = ((MediatorHTTPRequest) error.getOriginalRequest());
+            if (GET_AUTH_DETAILS.equals(original.getOrchestration())) {
+                original = activeRequests.remove(original.getCorrelationId());
+            }
+
+            if (REGISTER_MEDIATOR.equals(original.getOrchestration())) {
+                original.getRespondTo().tell(new RegisterMediatorWithCoreResponse(false, null, error.getError().getMessage()), getSelf());
+
+            } else if (HEARTBEAT.equals(original.getOrchestration())) {
+                original.getRespondTo().tell(new SendHeartbeatToCoreResponse(false, error.getError().getMessage(), null), getSelf());
+
+            } else {
+                log.error(error.getError(), "http-connector: An error occurred while communicating with core");
+            }
+        } else {
+            log.error(error.getError(), "http-connector: An error occurred while communicating with core");
+        }
+    }
+
     @Override
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof RegisterMediatorWithCore) {
-            log.info("Registering mediator with core...");
             authenticateMessage(buildRegistrationRequest());
 
         } else if (msg instanceof MediatorHTTPRequest) {
@@ -266,7 +298,7 @@ public class CoreAPIConnector extends UntypedActor {
             handleHTTPConnectorResponse((MediatorHTTPResponse) msg);
 
         } else if (msg instanceof ExceptError) {
-            log.error(((ExceptError) msg).getError(), "http-connector: An error occurred while communicating with core");
+            handleExceptError((ExceptError) msg);
 
         } else if (msg instanceof AddOrchestrationToCoreResponse) {
             //do nothing

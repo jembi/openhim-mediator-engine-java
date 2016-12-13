@@ -6,6 +6,16 @@
 
 package org.openhim.mediator.engine.messages;
 
+import akka.actor.ActorRef;
+
 public class RegisterMediatorWithCore {
-    //no content
+    private final ActorRef respondTo;
+
+    public RegisterMediatorWithCore(ActorRef respondTo) {
+        this.respondTo = respondTo;
+    }
+
+    public ActorRef getRespondTo() {
+        return respondTo;
+    }
 }
