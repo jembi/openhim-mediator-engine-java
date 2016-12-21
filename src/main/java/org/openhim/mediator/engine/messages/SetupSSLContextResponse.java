@@ -27,7 +27,7 @@ public class SetupSSLContextResponse extends MediatorResponseMessage {
     }
 
     public boolean isSuccessful() {
-        return error != null;
+        return error == null;
     }
 
     public Throwable getError() {

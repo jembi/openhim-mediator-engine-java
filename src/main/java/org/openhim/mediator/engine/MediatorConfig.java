@@ -6,7 +6,6 @@
 
 package org.openhim.mediator.engine;
 
-import akka.actor.ActorRef;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
@@ -60,51 +59,44 @@ public class MediatorConfig {
     }
 
     public static class SSLContext {
-        private final ActorRef respondTo;
-
         private final KeyStore keyStore;
         private final KeyStore[] trustStores;
         private final boolean trustSelfSigned;
         private final boolean allowAllHostnames;
 
-        public SSLContext(ActorRef respondTo, KeyStore keyStore, KeyStore[] trustStores, boolean trustSelfSigned, boolean allowAllHostnames) {
-            this.respondTo = respondTo;
+        public SSLContext(KeyStore keyStore, KeyStore[] trustStores, boolean trustSelfSigned, boolean allowAllHostnames) {
             this.keyStore = keyStore;
             this.trustStores = trustStores;
             this.trustSelfSigned = trustSelfSigned;
             this.allowAllHostnames = allowAllHostnames;
         }
 
-        public SSLContext(ActorRef respondTo, KeyStore keyStore, KeyStore trustStore, boolean trustSelfSigned, boolean allowAllHostnames) {
-            this(respondTo, keyStore, new KeyStore[]{trustStore}, trustSelfSigned, allowAllHostnames);
+        public SSLContext(KeyStore keyStore, KeyStore trustStore, boolean trustSelfSigned, boolean allowAllHostnames) {
+            this(keyStore, new KeyStore[]{trustStore}, trustSelfSigned, allowAllHostnames);
         }
 
-        public SSLContext(ActorRef respondTo, KeyStore keyStore, KeyStore[] trustStores) {
-            this(respondTo, keyStore, trustStores, false, false);
+        public SSLContext(KeyStore keyStore, KeyStore[] trustStores) {
+            this(keyStore, trustStores, false, false);
         }
 
-        public SSLContext(ActorRef respondTo, KeyStore keyStore, KeyStore trustStore) {
-            this(respondTo, keyStore, trustStore, false, false);
+        public SSLContext(KeyStore keyStore, KeyStore trustStore) {
+            this(keyStore, trustStore, false, false);
         }
 
-        public SSLContext(ActorRef respondTo, KeyStore[] trustStores, boolean trustSelfSigned, boolean allowAllHostnames) {
-            this(respondTo, null, trustStores, trustSelfSigned, allowAllHostnames);
+        public SSLContext(KeyStore[] trustStores, boolean trustSelfSigned, boolean allowAllHostnames) {
+            this(null, trustStores, trustSelfSigned, allowAllHostnames);
         }
 
-        public SSLContext(ActorRef respondTo, KeyStore trustStore, boolean trustSelfSigned, boolean allowAllHostnames) {
-            this(respondTo, null, new KeyStore[]{trustStore}, trustSelfSigned, allowAllHostnames);
+        public SSLContext(KeyStore trustStore, boolean trustSelfSigned, boolean allowAllHostnames) {
+            this(null, new KeyStore[]{trustStore}, trustSelfSigned, allowAllHostnames);
         }
 
-        public SSLContext(ActorRef respondTo, KeyStore[] trustStores) {
-            this(respondTo, null, trustStores, false, false);
+        public SSLContext(KeyStore[] trustStores) {
+            this(null, trustStores, false, false);
         }
 
-        public SSLContext(ActorRef respondTo, KeyStore trustStore) {
-            this(respondTo, null, trustStore, false, false);
-        }
-
-        public ActorRef getRespondTo() {
-            return respondTo;
+        public SSLContext(KeyStore trustStore) {
+            this(null, trustStore, false, false);
         }
 
         public KeyStore getKeyStore() {

@@ -118,7 +118,7 @@ public class MediatorServer {
         httpServer.start();
 
         if (config.getSSLContext() != null) {
-            ActorRef coordinator = system.actorOf(Props.create(SSLContextStartupCoordinator.class, config, registerMediatorWithCore), config.getName());
+            ActorRef coordinator = system.actorOf(Props.create(SSLContextStartupCoordinator.class, config, registerMediatorWithCore), "ssl-context-coordinator");
             coordinator.tell(new TriggerSSLContextStartupCoordinator(), ActorRef.noSender());
         } else {
             ActorSelection heartbeat = system.actorSelection(config.userPathFor("heartbeat"));
