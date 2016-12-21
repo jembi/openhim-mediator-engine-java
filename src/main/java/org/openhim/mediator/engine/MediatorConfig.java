@@ -6,6 +6,7 @@
 
 package org.openhim.mediator.engine;
 
+import akka.actor.ActorRef;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
@@ -20,6 +21,109 @@ import java.util.Properties;
  * At a minimum the name, server host & port and the routing table needs to be set.
  */
 public class MediatorConfig {
+    public static class KeyStore {
+        private final String filename;
+        private final InputStream inputStream;
+        private final String password;
+
+        public KeyStore(String filename, String password) {
+            this.filename = filename;
+            this.inputStream = null;
+            this.password = password;
+        }
+
+        public KeyStore(InputStream inputStream, String password) {
+            this.filename = null;
+            this.inputStream = inputStream;
+            this.password = password;
+        }
+
+        public KeyStore(String filename) {
+            this(filename, null);
+        }
+
+        public KeyStore(InputStream inputStream) {
+            this(inputStream, null);
+        }
+
+        public String getFilename() {
+            return filename;
+        }
+
+        public InputStream getInputStream() {
+            return inputStream;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+    }
+
+    public static class SSLContext {
+        private final ActorRef respondTo;
+
+        private final KeyStore keyStore;
+        private final KeyStore[] trustStores;
+        private final boolean trustSelfSigned;
+        private final boolean allowAllHostnames;
+
+        public SSLContext(ActorRef respondTo, KeyStore keyStore, KeyStore[] trustStores, boolean trustSelfSigned, boolean allowAllHostnames) {
+            this.respondTo = respondTo;
+            this.keyStore = keyStore;
+            this.trustStores = trustStores;
+            this.trustSelfSigned = trustSelfSigned;
+            this.allowAllHostnames = allowAllHostnames;
+        }
+
+        public SSLContext(ActorRef respondTo, KeyStore keyStore, KeyStore trustStore, boolean trustSelfSigned, boolean allowAllHostnames) {
+            this(respondTo, keyStore, new KeyStore[]{trustStore}, trustSelfSigned, allowAllHostnames);
+        }
+
+        public SSLContext(ActorRef respondTo, KeyStore keyStore, KeyStore[] trustStores) {
+            this(respondTo, keyStore, trustStores, false, false);
+        }
+
+        public SSLContext(ActorRef respondTo, KeyStore keyStore, KeyStore trustStore) {
+            this(respondTo, keyStore, trustStore, false, false);
+        }
+
+        public SSLContext(ActorRef respondTo, KeyStore[] trustStores, boolean trustSelfSigned, boolean allowAllHostnames) {
+            this(respondTo, null, trustStores, trustSelfSigned, allowAllHostnames);
+        }
+
+        public SSLContext(ActorRef respondTo, KeyStore trustStore, boolean trustSelfSigned, boolean allowAllHostnames) {
+            this(respondTo, null, new KeyStore[]{trustStore}, trustSelfSigned, allowAllHostnames);
+        }
+
+        public SSLContext(ActorRef respondTo, KeyStore[] trustStores) {
+            this(respondTo, null, trustStores, false, false);
+        }
+
+        public SSLContext(ActorRef respondTo, KeyStore trustStore) {
+            this(respondTo, null, trustStore, false, false);
+        }
+
+        public ActorRef getRespondTo() {
+            return respondTo;
+        }
+
+        public KeyStore getKeyStore() {
+            return keyStore;
+        }
+
+        public KeyStore[] getTrustStores() {
+            return trustStores;
+        }
+
+        public boolean getTrustSelfSigned() {
+            return trustSelfSigned;
+        }
+
+        public boolean getAllowAllHostnames() {
+            return allowAllHostnames;
+        }
+    }
+
     private String name;
 
     private String serverHost;
@@ -35,6 +139,8 @@ public class MediatorConfig {
     private RoutingTable routingTable;
     private StartupActorsConfig startupActors;
     private RegistrationConfig registrationConfig;
+
+    private SSLContext sslContext;
 
     private boolean heartbeatsEnabled = false;
     private int heartbeatPeriodSeconds = 10;
@@ -329,5 +435,22 @@ public class MediatorConfig {
      */
     public Map<String, Object> getDynamicConfig() {
         return dynamicConfig;
+    }
+
+    /**
+     * @see #setSSLContext(SSLContext)
+     */
+    public SSLContext getSSLContext() {
+        return sslContext;
+    }
+
+    /**
+     * Sets the SSL Context information for the mediator. If set, the {@link MediatorServer} will trigger a message
+     * to the {@link org.openhim.mediator.engine.connectors.HTTPConnector} on startup in order to setup the context.
+     *
+     * @see #getSSLContext()
+     */
+    public void setSSLContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
     }
 }

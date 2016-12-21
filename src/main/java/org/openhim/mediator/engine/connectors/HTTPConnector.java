@@ -20,6 +20,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.openhim.mediator.engine.CoreResponse;
+import org.openhim.mediator.engine.MediatorConfig;
 import org.openhim.mediator.engine.MediatorRequestHandler;
 import org.openhim.mediator.engine.messages.*;
 import scala.concurrent.ExecutionContext;
@@ -28,6 +29,7 @@ import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -46,7 +48,7 @@ import static akka.dispatch.Futures.future;
  * Supports the following messages:
  * <ul>
  * <li>{@link MediatorHTTPRequest} - responds with {@link MediatorHTTPResponse}</li>
- * <li>{@link SetupHTTPSCertificate} - no response</li>
+ * <li>{@link SetupSSLContext} - response with {@link SetupSSLContextResponse}</li>
  * </ul>
  */
 public class HTTPConnector extends UntypedActor {
@@ -54,6 +56,7 @@ public class HTTPConnector extends UntypedActor {
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private SSLContext sslContext;
+    private boolean sslAllowAllHostnames;
 
 
     private void copyHeaders(MediatorHTTPRequest src, HttpUriRequest dst) {
@@ -222,7 +225,14 @@ public class HTTPConnector extends UntypedActor {
 
     private CloseableHttpClient getHttpClient(final MediatorHTTPRequest req) {
         if (sslContext!=null && "https".equalsIgnoreCase(req.getScheme())) {
-            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext);
+            SSLConnectionSocketFactory sslsf;
+
+            if (sslAllowAllHostnames) {
+                sslsf = new SSLConnectionSocketFactory(sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            } else {
+                sslsf = new SSLConnectionSocketFactory(sslContext);
+            }
+
             return HttpClients.custom().setSSLSocketFactory(sslsf).build();
         } else {
             return HttpClients.createDefault();
@@ -269,31 +279,60 @@ public class HTTPConnector extends UntypedActor {
     }
 
 
-    private void setupHTTPSCertificate(SetupHTTPSCertificate msg) {
+    private KeyStore loadKeyStore(MediatorConfig.KeyStore inKS) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
+        KeyStore ks = KeyStore.getInstance("JKS");
+        InputStream inputStream;
+
+        if (inKS.getFilename() != null) {
+            inputStream = new FileInputStream(new File(inKS.getFilename()));
+        } else {
+            inputStream = inKS.getInputStream();
+        }
+
         try {
-            KeyStore ks = KeyStore.getInstance("JKS");
-            FileInputStream ksIn = new FileInputStream(new File(msg.getKeyStoreName()));
-            ks.load(ksIn, msg.getKeyStorePassword().toCharArray());
-            IOUtils.closeQuietly(ksIn);
+            if (inKS.getPassword() != null) {
+                ks.load(inputStream, inKS.getPassword().toCharArray());
+            } else {
+                ks.load(inputStream, null);
+            }
+        } finally {
+            IOUtils.closeQuietly(inputStream);
+        }
 
-            KeyStore ts = KeyStore.getInstance("JKS");
-            FileInputStream tsIn = new FileInputStream(new File(msg.getTrustStoreName()));
-            ts.load(tsIn, null);
-            IOUtils.closeQuietly(tsIn);
+        return ks;
+    }
 
-            TrustStrategy strat = null;
-            if (msg.getTrustSelfSigned()) {
-                strat = new TrustSelfSignedStrategy();
+    private void setupSSLContext(SetupSSLContext msg) {
+        try {
+            SSLContextBuilder builder = SSLContexts.custom();
+
+            if (msg.getRequestObject().getKeyStore() != null) {
+                KeyStore ks = loadKeyStore(msg.getRequestObject().getKeyStore());
+                if (msg.getRequestObject().getKeyStore().getPassword() != null) {
+                    builder.loadKeyMaterial(ks, msg.getRequestObject().getKeyStore().getPassword().toCharArray());
+                } else {
+                    builder.loadKeyMaterial(ks, null);
+                }
             }
 
-            sslContext = SSLContexts.custom()
-                    .loadKeyMaterial(ks, msg.getKeyStorePassword().toCharArray())
-                    .loadTrustMaterial(ts, strat)
-                    .build();
+            for (MediatorConfig.KeyStore ts : msg.getRequestObject().getTrustStores()) {
+                KeyStore ks = loadKeyStore(ts);
+
+                TrustStrategy strat = null;
+                if (msg.getRequestObject().getTrustSelfSigned()) {
+                    strat = new TrustSelfSignedStrategy();
+                }
+
+                builder.loadTrustMaterial(ks, strat);
+            }
+
+            sslContext = builder.build();
+            sslAllowAllHostnames = msg.getRequestObject().getAllowAllHostnames();
+            msg.getRespondTo().tell(new SetupSSLContextResponse(msg), getSelf());
         } catch (NoSuchAlgorithmException | KeyManagementException | UnrecoverableKeyException |
                 KeyStoreException | IOException | CertificateException ex) {
-            log.error(ex, "Exception during processing of SetupHTTPSCertificate message");
             sslContext = null;
+            msg.getRespondTo().tell(new SetupSSLContextResponse(msg, ex), getSelf());
         }
     }
 
@@ -301,8 +340,8 @@ public class HTTPConnector extends UntypedActor {
     public void onReceive(Object msg) throws Exception {
         if (msg instanceof MediatorHTTPRequest) {
             sendRequest((MediatorHTTPRequest) msg);
-        } else if (msg instanceof SetupHTTPSCertificate) {
-            setupHTTPSCertificate((SetupHTTPSCertificate) msg);
+        } else if (msg instanceof SetupSSLContext) {
+            setupSSLContext((SetupSSLContext) msg);
         } else {
             unhandled(msg);
         }
