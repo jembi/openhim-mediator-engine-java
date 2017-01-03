@@ -56,7 +56,7 @@ public class HTTPConnector extends UntypedActor {
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private SSLContext sslContext;
-    private boolean sslAllowAllHostnames;
+    private boolean sslTrustAll;
 
 
     private void copyHeaders(MediatorHTTPRequest src, HttpUriRequest dst) {
@@ -227,7 +227,8 @@ public class HTTPConnector extends UntypedActor {
         if (sslContext!=null && "https".equalsIgnoreCase(req.getScheme())) {
             SSLConnectionSocketFactory sslsf;
 
-            if (sslAllowAllHostnames) {
+            if (sslTrustAll) {
+                log.warning("SSL: Creating connection using 'trust all' option");
                 sslsf = new SSLConnectionSocketFactory(sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
             } else {
                 sslsf = new SSLConnectionSocketFactory(sslContext);
@@ -306,6 +307,12 @@ public class HTTPConnector extends UntypedActor {
         try {
             SSLContextBuilder builder = SSLContexts.custom();
 
+            sslTrustAll = msg.getRequestObject().getTrustAll();
+            if (sslTrustAll) {
+                log.warning("SSL: Trusting all certificates. This option should be considered unsecure and should not be enabled in production environments.");
+                builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+            }
+
             if (msg.getRequestObject().getKeyStore() != null) {
                 KeyStore ks = loadKeyStore(msg.getRequestObject().getKeyStore());
                 if (msg.getRequestObject().getKeyStore().getPassword() != null) {
@@ -317,17 +324,11 @@ public class HTTPConnector extends UntypedActor {
 
             for (MediatorConfig.KeyStore ts : msg.getRequestObject().getTrustStores()) {
                 KeyStore ks = loadKeyStore(ts);
-
-                TrustStrategy strat = null;
-                if (msg.getRequestObject().getTrustSelfSigned()) {
-                    strat = new TrustSelfSignedStrategy();
-                }
-
-                builder.loadTrustMaterial(ks, strat);
+                builder.loadTrustMaterial(ks);
             }
 
             sslContext = builder.build();
-            sslAllowAllHostnames = msg.getRequestObject().getAllowAllHostnames();
+
             msg.getRespondTo().tell(new SetupSSLContextResponse(msg), getSelf());
         } catch (NoSuchAlgorithmException | KeyManagementException | UnrecoverableKeyException |
                 KeyStoreException | IOException | CertificateException ex) {

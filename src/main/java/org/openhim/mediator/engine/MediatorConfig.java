@@ -61,42 +61,36 @@ public class MediatorConfig {
     public static class SSLContext {
         private final KeyStore keyStore;
         private final KeyStore[] trustStores;
-        private final boolean trustSelfSigned;
-        private final boolean allowAllHostnames;
+        private final boolean trustAll;
 
-        public SSLContext(KeyStore keyStore, KeyStore[] trustStores, boolean trustSelfSigned, boolean allowAllHostnames) {
+        public SSLContext(KeyStore keyStore, KeyStore[] trustStores, boolean trustAll) {
             this.keyStore = keyStore;
             this.trustStores = trustStores;
-            this.trustSelfSigned = trustSelfSigned;
-            this.allowAllHostnames = allowAllHostnames;
-        }
-
-        public SSLContext(KeyStore keyStore, KeyStore trustStore, boolean trustSelfSigned, boolean allowAllHostnames) {
-            this(keyStore, new KeyStore[]{trustStore}, trustSelfSigned, allowAllHostnames);
+            this.trustAll = trustAll;
         }
 
         public SSLContext(KeyStore keyStore, KeyStore[] trustStores) {
-            this(keyStore, trustStores, false, false);
+            this(keyStore, trustStores, false);
         }
 
         public SSLContext(KeyStore keyStore, KeyStore trustStore) {
-            this(keyStore, trustStore, false, false);
-        }
-
-        public SSLContext(KeyStore[] trustStores, boolean trustSelfSigned, boolean allowAllHostnames) {
-            this(null, trustStores, trustSelfSigned, allowAllHostnames);
-        }
-
-        public SSLContext(KeyStore trustStore, boolean trustSelfSigned, boolean allowAllHostnames) {
-            this(null, new KeyStore[]{trustStore}, trustSelfSigned, allowAllHostnames);
+            this(keyStore, new KeyStore[]{trustStore});
         }
 
         public SSLContext(KeyStore[] trustStores) {
-            this(null, trustStores, false, false);
+            this(null, trustStores);
         }
 
         public SSLContext(KeyStore trustStore) {
-            this(null, trustStore, false, false);
+            this(null, trustStore);
+        }
+
+        public SSLContext(KeyStore keyStore, boolean trustAll) {
+            this(keyStore, new KeyStore[0], trustAll);
+        }
+
+        public SSLContext(boolean trustAll) {
+            this(null, trustAll);
         }
 
         public KeyStore getKeyStore() {
@@ -107,12 +101,8 @@ public class MediatorConfig {
             return trustStores;
         }
 
-        public boolean getTrustSelfSigned() {
-            return trustSelfSigned;
-        }
-
-        public boolean getAllowAllHostnames() {
-            return allowAllHostnames;
+        public boolean getTrustAll() {
+            return trustAll;
         }
     }
 
