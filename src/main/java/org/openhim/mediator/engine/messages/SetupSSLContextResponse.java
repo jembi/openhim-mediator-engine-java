@@ -9,7 +9,7 @@ package org.openhim.mediator.engine.messages;
 /**
  * Result of setting up the SSL context.
  * <br>
- * Check {@link #isSuccessful()} for the status, and if false, and error will be available ({@link #getError()})
+ * Check {@link #isSuccessful()} for the status, and if false, an error will be available ({@link #getError()})
  *
  * @see SetupSSLContext
  */

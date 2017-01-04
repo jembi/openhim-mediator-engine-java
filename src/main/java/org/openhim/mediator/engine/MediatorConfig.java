@@ -20,6 +20,9 @@ import java.util.Properties;
  * At a minimum the name, server host & port and the routing table needs to be set.
  */
 public class MediatorConfig {
+    /**
+     * A JKS keystore.
+     */
     public static class KeyStore {
         private final String filename;
         private final InputStream inputStream;
@@ -58,6 +61,18 @@ public class MediatorConfig {
         }
     }
 
+    /**
+     * SSL context configuration to use when setting up secure connections.
+     *
+     * This configuration will be used by the http-connector, as well as any requests
+     * to the OpenHIM API (core-api-connector, heartbeats, etc.).
+     *
+     * Note that the 'trustAll' option (@see {@link #SSLContext(boolean)})
+     * effectively disables certificate validation and should only be used
+     * for development purposes etc. and is not recommended in production contexts.
+     *
+     * @see MediatorConfig#setSSLContext(SSLContext)
+     */
     public static class SSLContext {
         private final KeyStore keyStore;
         private final KeyStore[] trustStores;

@@ -48,7 +48,7 @@ import static akka.dispatch.Futures.future;
  * Supports the following messages:
  * <ul>
  * <li>{@link MediatorHTTPRequest} - responds with {@link MediatorHTTPResponse}</li>
- * <li>{@link SetupSSLContext} - response with {@link SetupSSLContextResponse}</li>
+ * <li>{@link SetupSSLContext} - responds with {@link SetupSSLContextResponse}</li>
  * </ul>
  */
 public class HTTPConnector extends UntypedActor {
