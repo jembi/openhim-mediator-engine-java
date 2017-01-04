@@ -10,6 +10,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.glassfish.grizzly.http.server.HttpHandler;
@@ -18,6 +19,8 @@ import org.glassfish.grizzly.http.server.NetworkListener;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.openhim.mediator.engine.messages.GrizzlyHTTPRequest;
+import org.openhim.mediator.engine.messages.SetupSSLContext;
+import org.openhim.mediator.engine.messages.SetupSSLContextResponse;
 
 import java.io.IOException;
 
@@ -32,6 +35,43 @@ import java.io.IOException;
  * </ul>
  */
 public class MediatorServer {
+    private static class TriggerSSLContextStartupCoordinator {}
+
+    private static class SSLContextStartupCoordinator extends UntypedActor {
+        LoggingAdapter log = Logging.getLogger(getContext().system(), this);
+
+        private final MediatorConfig config;
+        private final boolean registerMediatorWithCore;
+
+        public SSLContextStartupCoordinator(MediatorConfig config, boolean registerMediatorWithCore) {
+            this.config = config;
+            this.registerMediatorWithCore = registerMediatorWithCore;
+        }
+
+        @Override
+        public void onReceive(Object msg) throws Exception {
+            if (msg instanceof TriggerSSLContextStartupCoordinator) {
+                ActorSelection httpConnector = getContext().actorSelection(config.userPathFor("http-connector"));
+                httpConnector.tell(new SetupSSLContext(getSelf(), getSelf(), config.getSSLContext()), getSelf());
+
+            } else if (msg instanceof SetupSSLContextResponse) {
+                try {
+                    if (((SetupSSLContextResponse) msg).isSuccessful()) {
+                        ActorSelection heartbeat = getContext().actorSelection(config.userPathFor("heartbeat"));
+                        heartbeat.tell(new HeartbeatActor.Start(registerMediatorWithCore), ActorRef.noSender());
+                    } else {
+                        log.error(((SetupSSLContextResponse) msg).getError(), "Unable to setup SSL context");
+                    }
+                } finally {
+                    getContext().stop(getSelf());
+                }
+
+            } else {
+                unhandled(msg);
+            }
+        }
+    }
+
     private final LoggingAdapter log;
 
     private final ActorSystem system;
@@ -77,8 +117,13 @@ public class MediatorServer {
     public void start(boolean registerMediatorWithCore) throws IOException {
         httpServer.start();
 
-        ActorSelection heartbeat = system.actorSelection(config.userPathFor("heartbeat"));
-        heartbeat.tell(new HeartbeatActor.Start(registerMediatorWithCore), ActorRef.noSender());
+        if (config.getSSLContext() != null) {
+            ActorRef coordinator = system.actorOf(Props.create(SSLContextStartupCoordinator.class, config, registerMediatorWithCore), "ssl-context-coordinator");
+            coordinator.tell(new TriggerSSLContextStartupCoordinator(), ActorRef.noSender());
+        } else {
+            ActorSelection heartbeat = system.actorSelection(config.userPathFor("heartbeat"));
+            heartbeat.tell(new HeartbeatActor.Start(registerMediatorWithCore), ActorRef.noSender());
+        }
     }
 
     public void stop() {

@@ -20,6 +20,107 @@ import java.util.Properties;
  * At a minimum the name, server host & port and the routing table needs to be set.
  */
 public class MediatorConfig {
+    /**
+     * A JKS keystore.
+     */
+    public static class KeyStore {
+        private final String filename;
+        private final InputStream inputStream;
+        private final String password;
+
+        public KeyStore(String filename, String password) {
+            this.filename = filename;
+            this.inputStream = null;
+            this.password = password;
+        }
+
+        public KeyStore(InputStream inputStream, String password) {
+            this.filename = null;
+            this.inputStream = inputStream;
+            this.password = password;
+        }
+
+        public KeyStore(String filename) {
+            this(filename, null);
+        }
+
+        public KeyStore(InputStream inputStream) {
+            this(inputStream, null);
+        }
+
+        public String getFilename() {
+            return filename;
+        }
+
+        public InputStream getInputStream() {
+            return inputStream;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+    }
+
+    /**
+     * SSL context configuration to use when setting up secure connections.
+     *
+     * This configuration will be used by the http-connector, as well as any requests
+     * to the OpenHIM API (core-api-connector, heartbeats, etc.).
+     *
+     * Note that the 'trustAll' option (@see {@link #SSLContext(boolean)})
+     * effectively disables certificate validation and should only be used
+     * for development purposes etc. and is not recommended in production contexts.
+     *
+     * @see MediatorConfig#setSSLContext(SSLContext)
+     */
+    public static class SSLContext {
+        private final KeyStore keyStore;
+        private final KeyStore[] trustStores;
+        private final boolean trustAll;
+
+        public SSLContext(KeyStore keyStore, KeyStore[] trustStores, boolean trustAll) {
+            this.keyStore = keyStore;
+            this.trustStores = trustStores;
+            this.trustAll = trustAll;
+        }
+
+        public SSLContext(KeyStore keyStore, KeyStore[] trustStores) {
+            this(keyStore, trustStores, false);
+        }
+
+        public SSLContext(KeyStore keyStore, KeyStore trustStore) {
+            this(keyStore, new KeyStore[]{trustStore});
+        }
+
+        public SSLContext(KeyStore[] trustStores) {
+            this(null, trustStores);
+        }
+
+        public SSLContext(KeyStore trustStore) {
+            this(null, trustStore);
+        }
+
+        public SSLContext(KeyStore keyStore, boolean trustAll) {
+            this(keyStore, new KeyStore[0], trustAll);
+        }
+
+        public SSLContext(boolean trustAll) {
+            this(null, trustAll);
+        }
+
+        public KeyStore getKeyStore() {
+            return keyStore;
+        }
+
+        public KeyStore[] getTrustStores() {
+            return trustStores;
+        }
+
+        public boolean getTrustAll() {
+            return trustAll;
+        }
+    }
+
     private String name;
 
     private String serverHost;
@@ -35,6 +136,8 @@ public class MediatorConfig {
     private RoutingTable routingTable;
     private StartupActorsConfig startupActors;
     private RegistrationConfig registrationConfig;
+
+    private SSLContext sslContext;
 
     private boolean heartbeatsEnabled = false;
     private int heartbeatPeriodSeconds = 10;
@@ -329,5 +432,22 @@ public class MediatorConfig {
      */
     public Map<String, Object> getDynamicConfig() {
         return dynamicConfig;
+    }
+
+    /**
+     * @see #setSSLContext(SSLContext)
+     */
+    public SSLContext getSSLContext() {
+        return sslContext;
+    }
+
+    /**
+     * Sets the SSL Context information for the mediator. If set, the {@link MediatorServer} will trigger a message
+     * to the {@link org.openhim.mediator.engine.connectors.HTTPConnector} on startup in order to setup the context.
+     *
+     * @see #getSSLContext()
+     */
+    public void setSSLContext(SSLContext sslContext) {
+        this.sslContext = sslContext;
     }
 }

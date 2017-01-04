@@ -21,7 +21,7 @@ Include the jar in your mediator project. If you're using Maven, simply add the 
 <dependency>
   <groupId>org.openhim</groupId>
   <artifactId>mediator-engine</artifactId>
-  <version>3.1.0</version>
+  <version>4.0.0</version>
 </dependency>
 ```
 
@@ -147,7 +147,7 @@ connecter.tell(httpRequest, getSelf());
 The connectors are loaded on the path: "/user/**{mediator-name}**/**{connector-name}**" during mediator initialization. All the connectors will automatically add an orchestration item to the final mediator response (except for the `udp-fire-forget-connector`).
 
 ## `http-connector`
-Provides connection to HTTP services. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`. Also accepts `SetupHTTPSCertificate` for SSL configuration; although note that this is not required to be sent in order to use https.
+Provides connection to HTTP services. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`.
 
 ## `core-api-connector`
 An adaptor to the http-connector that adds the authentication headers as required by the OpenHIM Core API. Accepts `MediatorHTTPRequest` messages and will respond with `MediatorHTTPResponse`. It will use the auth details provided in the mediator config supplied to the mediator server. It also supports the `RegisterMediatorWithCore` message, although this is automatically called by the engine.
@@ -204,6 +204,9 @@ public class MyActor extends UntypedActor {
     }
 }
 ```
+
+### SSL Context
+SSL context configuration can be specified via the `MediatorConfig` (in particular `.setSSLContext(...)`) before starting up the mediator server. This allows you to include specific certificates in the trust store and/or include a client certificate for mutual authentication. This context will also affect HTTPS connections to the OpenHIM Core, e.g. for heartbeats and registration, so this will provide you with a mechanism to trust Core's certificate if it's self-signed.
 
 ## Registration config
 Upon startup your mediator must register itself with core. The engine will handle this automatically, but you must supply the engine with a json string containing the configuration for your mediator. See [this](http://openhim.readthedocs.org/en/latest/dev-guide/mediators.html) page for details. This string can be passed to your instance of `MediatorConfig` using an instance of `RegistrationConfig`:
