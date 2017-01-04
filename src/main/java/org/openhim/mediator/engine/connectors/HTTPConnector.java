@@ -228,7 +228,6 @@ public class HTTPConnector extends UntypedActor {
             SSLConnectionSocketFactory sslsf;
 
             if (sslTrustAll) {
-                log.warning("SSL: Creating connection using 'trust all' option");
                 sslsf = new SSLConnectionSocketFactory(sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
             } else {
                 sslsf = new SSLConnectionSocketFactory(sslContext);
